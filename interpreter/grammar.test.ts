@@ -1,6 +1,6 @@
 import { assertEquals } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
 
-import { factor, expression, fnExpr, fnCall } from './parsers.ts';
+import { factor, expression, fnExpr, fnCall } from './grammar.ts';
 import { Plus, NumberExpr, Mult } from './asts.ts';
 import { Source } from 'lib/parser/mod.ts';
 

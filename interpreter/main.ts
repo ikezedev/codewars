@@ -1,5 +1,5 @@
 import { ParserError, Source } from 'lib/parser/mod.ts';
-import { expression } from './parsers.ts';
+import { expression } from './grammar.ts';
 import { Ctx } from './asts.ts';
 
 export class Interpreter {
