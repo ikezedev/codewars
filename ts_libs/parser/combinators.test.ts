@@ -4,7 +4,7 @@ import {
 } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
 
 import { lit } from './primitive.ts';
-import { Source } from './parser.ts';
+import { Source } from './mod.ts';
 import { inOrder, oneOf, oneOrMore } from './combinators.ts';
 
 Deno.test('inOrder', () => {
