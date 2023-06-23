@@ -1,6 +1,5 @@
 import {
   Divide,
-  NumberExpr,
   Assign,
   Id,
   Expr,
@@ -12,63 +11,28 @@ import {
   ICreate,
   FnCall,
   Fn,
+  NumberExpr,
 } from './asts.ts';
-import { Triple, join, second } from './helpers.ts';
+import { Triple, second } from 'lib/parser/helpers.ts';
 import {
   inOrder,
   oneOf,
   oneOrMore,
   leftAssociative,
-  surrounded,
   zeroOrMore,
-} from './parser.combinators.ts';
+} from 'lib/parser/combinators.ts';
+
+import { Parser } from 'lib/parser/mod.ts';
+
 import {
-  Parser,
-  makeParser,
-  Source,
-  ParserError,
-  AllParser,
-} from './parser.ts';
-
-export function lit(literal: string | TemplateStringsArray): Parser<string> {
-  const literal_ = Array.isArray(literal) ? literal.join('') : literal;
-  return makeParser((input: Source) => {
-    const expected = input.src.slice(
-      input.start,
-      input.start + literal_.length
-    );
-    if (expected === literal_) {
-      return input.toResult(expected, literal_.length);
-    } else {
-      throw ParserError(`expect literal ${literal} but found ${expected}`);
-    }
-  });
-}
-
-export function regex(expr: RegExp) {
-  return makeParser((input) => {
-    const expected = input.src.slice(input.start).match(expr)?.[0];
-    if (
-      !expected ||
-      expected !== input.src.slice(input.start, input.start + expected.length)
-    ) {
-      throw ParserError(`expect to match ${expr} but found ${expected}`);
-    }
-    return input.toResult(expected, expected.length);
-  });
-}
-
-const digit = regex(/\d/);
-
-const ws = oneOrMore(lit` `).map(() => ` `);
-
-export const os = oneOf(
-  oneOrMore(lit` `).map((_) => ``),
-  lit``
-);
-
-export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os).map(second);
-export const letter = regex(/[a-zA-Z]/);
+  digit,
+  eatWs,
+  letter,
+  lit,
+  number,
+  os,
+  ws,
+} from 'lib/parser/primitive.ts';
 
 const identifierChar = oneOf(lit`_`, digit, letter);
 export const identifier = oneOf(lit`_`, letter)
@@ -82,19 +46,6 @@ const operators = {
   '+': Plus,
   '%': Modulo,
 } as Record<string, ICreate<Expr>>;
-
-const int = oneOrMore(digit).map(join);
-
-const double = inOrder(int, lit`.`, int).map(
-  ({ first, third }) => `${first}.${third}`
-);
-
-export const number = oneOf(double, int).map(parseFloat);
-
-const signedNumber = oneOf(
-  inOrder(lit`-`, number).map(({ second }) => -second),
-  number
-).map((val) => new NumberExpr(val));
 
 export function assignment() {
   return inOrder(identifier, eatWs(lit`=`), additive).map(
@@ -141,7 +92,7 @@ export const expression = oneOf(fnExpr, additive);
 
 export function factor(): Parser<Expr> {
   return oneOf<Expr>(
-    signedNumber,
+    number.map((val) => new NumberExpr(val)),
     assignment,
     fnCall,
     identifier,

@@ -1,5 +1,5 @@
 import { Map } from './helpers.ts';
-import { inOrder, oneOf } from './parser.combinators.ts';
+import { inOrder, oneOf } from './combinators.ts';
 
 export class Source {
   constructor(public src: string, public start: number) {}

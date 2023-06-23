@@ -1,5 +1,3 @@
-import { Evaluation, Fn } from './asts.ts';
-
 export interface Map<T> {
   map<V>(fn: (value: T) => V): Map<V>;
 }
@@ -11,14 +9,11 @@ export class Pair<T, U> {
 export class Triple<T, U, V> {
   constructor(public first: T, public second: U, public third: V) {}
 }
+
 type ADT<F = unknown, S = unknown, T = unknown> = Pair<F, S> | Triple<F, S, T>;
 export const first = <F>(ds: ADT<F>) => ds.first;
 export const second = <S>(ds: ADT<unknown, S>) => ds.second;
 export const third = <T>(ds: Triple<unknown, unknown, T>) => ds.third;
-export type Ctx = {
-  variables: Record<string, Evaluation>;
-  functions: Record<string, Fn>;
-};
 export const join = (strArr: string[]) => strArr.join('');
 
 export function zip<T, U>(xs: T[], ys: U[]): Array<[T, U]> {

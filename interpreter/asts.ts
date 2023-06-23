@@ -1,5 +1,9 @@
-import { Ctx, getOrThrow, zip } from './helpers.ts';
+import { zip } from 'lib/parser/helpers.ts';
 
+export type Ctx = {
+  variables: Record<string, Evaluation>;
+  functions: Record<string, Fn>;
+};
 export class Evaluation<T = number> {
   constructor(public val?: T) {}
 

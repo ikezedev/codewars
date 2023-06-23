@@ -3,9 +3,9 @@ import {
   assertThrows,
 } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
 
-import { lit } from './parsers.ts';
+import { lit } from './primitive.ts';
 import { Source } from './parser.ts';
-import { inOrder, oneOf, oneOrMore } from './parser.combinators.ts';
+import { inOrder, oneOf, oneOrMore } from './combinators.ts';
 
 Deno.test('inOrder', () => {
   const value1 = inOrder(lit`123`, lit`456`).parse(

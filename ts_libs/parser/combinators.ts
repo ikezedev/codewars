@@ -1,3 +1,4 @@
+import { Either, Left, None, Right, Some } from '../adt/common.ts';
 import { Pair, Triple } from './helpers.ts';
 import {
   Parser,
@@ -7,7 +8,7 @@ import {
   Source,
   AllParser,
   getParser,
-} from './parser.ts';
+} from './mod.ts';
 
 export function inOrder<T, U>(
   p1: AllParser<T>,
@@ -123,4 +124,24 @@ export function surrounded<T, S>(
   closing: AllParser<S>
 ): Parser<Triple<S, T, S>> {
   return inOrder(opening, parser, closing);
+}
+
+export function opt<T>(parser: AllParser<T>) {
+  return makeParser((input) => {
+    try {
+      return getParser(parser).parse(input).map(Some);
+    } catch (_) {
+      return input.toResult(None, 0);
+    }
+  });
+}
+
+export function either<L, R>(left: AllParser<L>, right: AllParser<R>) {
+  return makeParser((input): Result<Either<L, R>> => {
+    try {
+      return getParser(left).parse(input).map(Left);
+    } catch (_) {
+      return getParser(right).parse(input).map(Right);
+    }
+  });
 }

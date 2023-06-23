@@ -1,6 +1,6 @@
-import { Ctx } from './helpers.ts';
-import { ParserError, Source } from './parser.ts';
+import { ParserError, Source } from 'lib/parser/mod.ts';
 import { expression } from './parsers.ts';
+import { Ctx } from './asts.ts';
 
 export class Interpreter {
   ctx: Ctx = { variables: {}, functions: {} };
