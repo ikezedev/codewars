@@ -3,15 +3,16 @@ import { second } from './helpers.ts';
 import { AllParser, Parser, ParserError, Source, makeParser } from './mod.ts';
 
 export const digit = regex(/\d/);
-export const int = inOrder(opt(lit`-`), oneOrMore(digit)).map((pair) =>
+export const unsignedInt = regex(/\d+/);
+export const int = inOrder(opt(lit`-`), unsignedInt).map((pair) =>
   pair.first.match({
-    Some: (sign) => sign + pair.second.join(''),
-    None: () => pair.second.join(''),
+    Some: (sign) => sign + pair.second,
+    None: () => pair.second,
   })
 );
 
-export const double = inOrder(int, lit`.`, oneOrMore(digit)).map(
-  ({ first, third }) => `${first}.${third.join('')}`
+export const double = inOrder(int, lit`.`, unsignedInt).map(
+  ({ first, third }) => `${first}.${third}`
 );
 
 export const number = oneOf(double, int).map(parseFloat);
@@ -53,3 +54,4 @@ export const os = oneOf(
 
 export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os).map(second);
 export const letter = regex(/[a-zA-Z]/);
+export const letters = regex(/[a-zA-Z]+/);
