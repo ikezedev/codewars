@@ -7,7 +7,8 @@ export class Compiler {
   optimised?: FnExpr;
 
   pass1(prog: string) {
-    return grammar.parse(Source.fromString(prog)).value.idsToArgs().body;
+    return grammar.parse(Source.fromString(prog)).value.unwrapLeft().idsToArgs()
+      .body;
   }
 
   pass2(given: Expr) {

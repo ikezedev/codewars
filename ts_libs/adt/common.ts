@@ -1,16 +1,61 @@
+import { Pair } from '../parser/helpers.ts';
+
 abstract class Option<T> {
   abstract map<U>(fn: (val: T) => U): Option<U>;
 
   abstract unwrapOr(fn: () => T): T;
 
   abstract unwrapOrDefault(def: T): T;
+  abstract zip<U>(other: Option<U>): Option<Pair<T, U>>;
+  abstract flatten<U>(this: Option<Option<U>>): Option<U>;
+
+  abstract isSome(): boolean;
+  abstract isNone(): boolean;
 
   match<U>(patterns: { Some(val: T): U; None(): U }): U {
     return this.map(patterns.Some).unwrapOr(patterns.None);
   }
+
+  collect<T>(opts: Option<T>[]): Option<T[]> {
+    const res: T[] = [];
+    let seenNone = false;
+
+    for (const opt of opts) {
+      if (seenNone) return None;
+      opt.match({
+        Some(val) {
+          res.push(val);
+        },
+        None() {
+          seenNone = true;
+        },
+      });
+    }
+    return Some(res);
+  }
 }
 
 class Some_<T> extends Option<T> {
+  isSome(): boolean {
+    return true;
+  }
+  isNone(): boolean {
+    return false;
+  }
+  flatten<U>(this: Option<Option<U>>): Option<U> {
+    return this.match({
+      Some(val) {
+        return val;
+      },
+      None() {
+        return None;
+      },
+    });
+  }
+
+  zip<U>(other: Option<U>): Option<Pair<T, U>> {
+    return other.map((o) => new Pair(this.val, o));
+  }
   constructor(public val: T) {
     super();
   }
@@ -29,6 +74,19 @@ class Some_<T> extends Option<T> {
 }
 
 class None_<T> extends Option<T> {
+  isSome(): boolean {
+    return false;
+  }
+  isNone(): boolean {
+    return true;
+  }
+  flatten<U>(this: Option<Option<U>>): Option<U> {
+    return None;
+  }
+
+  zip<U>(): Option<Pair<T, U>> {
+    return None;
+  }
   map<U>(): Option<U> {
     return new None_<U>();
   }
@@ -57,15 +115,90 @@ abstract class Either<L, R> {
   abstract unwrapRightOrDefault(def: R): R;
   abstract unwrapRight(): R;
   abstract unwrapLeft(): L;
+  abstract zipLeft<U>(other: Either<U, R>): Either<Pair<L, U>, R>;
+  abstract flattenLeft<U>(this: Either<Either<U, R>, R>): Either<U, R>;
+  abstract flattenRight<U>(this: Either<L, Either<L, U>>): Either<L, U>;
+  abstract zipRight<U>(other: Either<L, U>): Either<L, Pair<R, U>>;
+  abstract isLeft(): boolean;
+  abstract isRight(): boolean;
+  abstract swap(): Either<R, L>;
 
   match<U>(patterns: { Left(val: L): U; Right(val: R): U }): U {
-    if (this instanceof Left) {
+    if (this.isLeft()) {
       return this.mapLeft(patterns.Left).unwrapLeft();
     }
     return this.mapRight(patterns.Right).unwrapRight();
   }
+  static collectLeft<L, R>(eithers: Either<L, R>[]): Either<L[], R> {
+    const res: L[] = [];
+    let seenRight: Pair<boolean, R | null> = new Pair(false, null);
+    for (const e of eithers) {
+      if (seenRight.first) {
+        return Right(seenRight.second!);
+      }
+      e.match({
+        Left(val) {
+          res.push(val);
+        },
+        Right(val) {
+          seenRight = new Pair(true, val);
+        },
+      });
+    }
+    return Left(res);
+  }
+  static collectRight<L, R>(eithers: Either<L, R>[]): Either<L, R[]> {
+    const res: R[] = [];
+    let seenLeft: Pair<boolean, L | null> = new Pair(false, null);
+    for (const e of eithers) {
+      if (seenLeft.first) {
+        return Left(seenLeft.second!);
+      }
+      e.match({
+        Right(val) {
+          res.push(val);
+        },
+        Left(val) {
+          seenLeft = new Pair(true, val);
+        },
+      });
+    }
+    return Right(res);
+  }
 }
 class Right_<R, L> extends Either<L, R> {
+  swap(): Either<R, L> {
+    return Left(this.val);
+  }
+  isLeft(): boolean {
+    return false;
+  }
+  isRight(): boolean {
+    return true;
+  }
+  flattenRight<U>(this: Either<L, Either<L, U>>): Either<L, U> {
+    return this.match({
+      Right: (val) => val,
+      Left() {
+        throw new Error('unreachable');
+      },
+    });
+  }
+  flattenLeft<U>(this: Either<Either<U, R>, R>): Either<U, R> {
+    return this.match({
+      Right: (val) => Right(val),
+      Left() {
+        throw new Error('unreachable');
+      },
+    });
+  }
+
+  zipRight<U>(other: Either<L, U>): Either<L, Pair<R, U>> {
+    return other.mapRight((o) => new Pair(this.val, o));
+  }
+  zipLeft<U>(): Either<Pair<L, U>, R> {
+    return Right(this.val);
+  }
   constructor(private val: R) {
     super();
   }
@@ -104,6 +237,37 @@ class Right_<R, L> extends Either<L, R> {
 }
 
 class Left_<L, R> extends Either<L, R> {
+  swap(): Either<R, L> {
+    return Right(this.val);
+  }
+  isLeft(): boolean {
+    return true;
+  }
+  isRight(): boolean {
+    return false;
+  }
+  flattenRight<U>(this: Either<L, Either<L, U>>): Either<L, U> {
+    return this.match({
+      Right() {
+        throw new Error('unreachable');
+      },
+      Left: (val) => Left(val),
+    });
+  }
+  flattenLeft<U>(this: Either<Either<U, R>, R>): Either<U, R> {
+    return this.match({
+      Right() {
+        throw new Error('unreachable');
+      },
+      Left: (val) => val,
+    });
+  }
+  zipRight<U>(): Either<L, Pair<R, U>> {
+    return Left(this.val);
+  }
+  zipLeft<U>(other: Either<U, R>): Either<Pair<L, U>, R> {
+    return other.mapLeft((o) => new Pair(this.val, o));
+  }
   constructor(private val: L) {
     super();
   }
@@ -141,7 +305,7 @@ class Left_<L, R> extends Either<L, R> {
   }
 }
 
-export type { Either, Option };
+export { Either, Option };
 
 export function Left<L, R = never>(val: L): Either<L, R> {
   return new Left_<L, R>(val);

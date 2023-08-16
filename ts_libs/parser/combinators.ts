@@ -1,4 +1,4 @@
-import { Either, Left, None, Right, Some } from '../adt/common.ts';
+import { Either, None, Some } from '../adt/common.ts';
 import { Pair, Triple } from './helpers.ts';
 import {
   Parser,
@@ -9,6 +9,7 @@ import {
   AllParser,
   getParser,
 } from './mod.ts';
+import { lit } from './primitive.ts';
 
 export function inOrder<T, U>(
   p1: AllParser<T>,
@@ -26,63 +27,64 @@ export function inOrder<T, U, V>(
 ): Parser<Pair<T, U>> | Parser<Triple<T, U, V>> {
   if (!p3) {
     return makeParser((input) => {
-      const res1 = getParser(p1).parse(input);
-      return getParser(p2)
-        .parse(res1)
-        .map((val) => new Pair(res1.value, val));
+      const first = getParser(p1).parse(input);
+      return first.chain(getParser(p2).parse);
     });
   }
   return makeParser((input) => {
-    const res1 = getParser(p1).parse(input);
-    const res2 = getParser(p2).parse(res1);
-    return getParser(p3)
-      .parse(res2)
-      .map((val) => new Triple(res1.value, res2.value, val));
+    const first = getParser(p1).parse(input);
+    const second = first.chain(getParser(p2).parse);
+    return second
+      .chain(getParser(p3).parse)
+      .mapLeft(
+        ({ first: { first, second }, second: third }) =>
+          new Triple(first, second, third)
+      );
   });
 }
 
 export function oneOrMore<T>(p: AllParser<T>): Parser<T[]> {
-  return makeParser((input) => {
-    const res: Result<T>[] = [];
-    try {
-      let next = getParser(p).parse(input);
-      res.push(next);
-      while (input.src.length > next.start) {
-        next = getParser(p).parse(next);
-        res.push(next);
+  return makeParser((input): Result<Either<T[], SyntaxError>> => {
+    const res: Result<Either<T, SyntaxError>>[] = [];
+    let next = input;
+    while (input.src.length > next.start) {
+      const result = getParser(p).parse(next);
+      if (result.value.isRight()) {
+        break;
       }
-    } catch (error) {
-      if (res.length > 0) {
-        return res.at(-1)!.map((_) => res.map((r) => r.value));
-      }
-      throw error;
+      res.push(result);
+      next = result;
     }
-    return res.at(-1)!.map((_) => res.map((r) => r.value));
+    if (res.length > 0) {
+      return res.at(-1)!.map(() => Either.collectLeft(res.map((r) => r.value)));
+    } else {
+      const err = ParserError(
+        'expected to match one or more variant but got none'
+      );
+      return input.toFailure(err);
+    }
   });
 }
 
 export function zeroOrMore<T>(p: AllParser<T>): Parser<T[]> {
-  return makeParser((input) => {
-    try {
-      return oneOrMore(p).parse(input);
-    } catch (_) {
-      return input.toResult([], 0);
-    }
-  });
+  return oneOrMore(p)
+    .chain(opt)
+    .map((val) => val.unwrapOrDefault([]));
 }
 
 export function oneOf<T>(...ps: Array<AllParser<T>>): Parser<T> {
   const parse =
     (ps: Array<AllParser<T>>) =>
-    (input: Source): Result<T> => {
+    (input: Source): Result<Either<T, SyntaxError>> => {
       if (!ps.length) {
-        throw ParserError(`did not match any variant at ${input.start}`);
+        const err = ParserError(`did not match any variant at ${input.start}`);
+        return input.toFailure(err);
       }
-      try {
-        return getParser(ps[0]).parse(input);
-      } catch (_) {
-        return parse(ps.slice(1))(input);
+      const result = getParser(ps[0]).parse(input);
+      if (result.value.isLeft()) {
+        return result;
       }
+      return parse(ps.slice(1))(input);
     };
   return makeParser(parse(ps));
 }
@@ -127,21 +129,38 @@ export function surrounded<T, S>(
 }
 
 export function opt<T>(parser: AllParser<T>) {
-  return makeParser((input) => {
-    try {
-      return getParser(parser).parse(input).map(Some);
-    } catch (_) {
-      return input.toResult(None, 0);
-    }
-  });
+  return getParser(parser)
+    .map((val) => Some(val))
+    .or(lit``.map(() => None));
 }
 
-export function either<L, R>(left: AllParser<L>, right: AllParser<R>) {
-  return makeParser((input): Result<Either<L, R>> => {
-    try {
-      return getParser(left).parse(input).map(Left);
-    } catch (_) {
-      return getParser(right).parse(input).map(Right);
-    }
-  });
-}
+// export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
+//   return makeParser((input): Result<T[]> => {
+//     const res: Result<T>[] = [];
+//     try {
+//       let trial = getParser(stopAt).parse(input);
+//       let next = getParser(p).parse(input);
+//       res.push(next);
+//       while (input.src.length > next.start) {
+//         next = getParser(p).parse(next);
+//         res.push(next);
+//       }
+//     } catch (error) {
+//       if (res.length > 0) {
+//         return res.at(-1)!.map((_) => res.map((r) => r.value));
+//       }
+//       throw error;
+//     }
+//     return res.at(-1)!.map((_) => res.map((r) => r.value));
+//   });
+// }
+
+// export function recoverable<T>(main: AllParser<T>, continueAfter: AllParser<string>): Parser<Either<T, string>> {
+//   return makeParser((input): Result<Either<T, string>> => {
+//     try {
+//       return getParser(main).parse(input).map(Left);
+//     } catch (_) {
+//       return getParser(right).parse(input).map(Right);
+//     }
+//   });
+// }

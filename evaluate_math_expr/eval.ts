@@ -34,5 +34,5 @@ function expr() {
 }
 
 export function calc(expression: string): number {
-  return expr().parse(Source.fromString(expression)).value;
+  return expr().parse(Source.fromString(expression)).value.unwrapLeft();
 }

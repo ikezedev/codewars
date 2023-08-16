@@ -23,8 +23,10 @@ export class Interpreter {
         )}`
       );
     }
-    return parsed.map((exp) => {
-      return exp.evaluate(this.ctx);
-    }).value;
+    return parsed
+      .mapLeft((exp) => {
+        return exp.evaluate(this.ctx);
+      })
+      .value.unwrapLeft();
   }
 }

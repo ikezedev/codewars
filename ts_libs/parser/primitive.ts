@@ -1,14 +1,18 @@
-import { inOrder, oneOf, oneOrMore, opt, surrounded } from './combinators.ts';
+import {
+  inOrder,
+  oneOf,
+  oneOrMore,
+  opt,
+  surrounded,
+  zeroOrMore,
+} from './combinators.ts';
 import { second } from './helpers.ts';
 import { AllParser, Parser, ParserError, Source, makeParser } from './mod.ts';
 
 export const digit = regex(/\d/);
 export const unsignedInt = regex(/\d+/);
-export const int = inOrder(opt(lit`-`), unsignedInt).map((pair) =>
-  pair.first.match({
-    Some: (sign) => sign + pair.second,
-    None: () => pair.second,
-  })
+export const int = inOrder(lit`-`.chain(opt), unsignedInt).map(
+  (pair) => pair.first.unwrapOrDefault('') + pair.second
 );
 
 export const double = inOrder(int, lit`.`, unsignedInt).map(
@@ -25,9 +29,11 @@ export function lit(literal: string | TemplateStringsArray): Parser<string> {
       input.start + literal_.length
     );
     if (expected === literal_) {
-      return input.toResult(expected, literal_.length);
+      return input.toSuccess(expected, literal_.length);
     } else {
-      throw ParserError(`expect literal ${literal} but found ${expected}`);
+      return input.toFailure(
+        ParserError(`expect literal ${literal} but found ${expected}`)
+      );
     }
   });
 }
@@ -39,18 +45,17 @@ export function regex(expr: RegExp) {
       !expected ||
       expected !== input.src.slice(input.start, input.start + expected.length)
     ) {
-      throw ParserError(`expect to match ${expr} but found ${expected}`);
+      return input.toFailure(
+        ParserError(`expect to match ${expr} but found ${expected}`)
+      );
     }
-    return input.toResult(expected, expected.length);
+    return input.toSuccess(expected, expected.length);
   });
 }
 
 export const ws = oneOrMore(lit` `).map(() => ` `);
 
-export const os = oneOf(
-  oneOrMore(lit` `).map((_) => ``),
-  lit``
-);
+export const os = zeroOrMore(lit` `).map((val) => val.join(''));
 
 export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os).map(second);
 export const letter = regex(/[a-zA-Z]/);
