@@ -34,7 +34,6 @@ Deno.test('inOrder', () => {
 
 Deno.test('oneOf', () => {
   const parsed = oneOf(lit`123`, lit`456`).parse(Source.fromString('456'));
-  console.log({ parsed });
   const value = parsed.value.unwrapLeft();
   assertEquals(value, '456');
   assertEquals(parsed.start, 3);

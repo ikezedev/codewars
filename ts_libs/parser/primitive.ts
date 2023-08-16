@@ -9,8 +9,26 @@ import {
 import { second } from './helpers.ts';
 import { AllParser, Parser, ParserError, Source, makeParser } from './mod.ts';
 
-export const digit = regex(/\d/);
-export const unsignedInt = regex(/\d+/);
+export function regex(expr: RegExp) {
+  return makeParser((input) => {
+    const expected = input.src.slice(input.start).match(expr)?.[0];
+    if (
+      !expected ||
+      expected !== input.src.slice(input.start, input.start + expected.length)
+    ) {
+      return input.toFailure(
+        ParserError(`expect to match ${expr} but found ${expected}`)
+      );
+    }
+    return input.toSuccess(expected, expected.length);
+  });
+}
+export function digit() {
+  return regex(/\d/);
+}
+export function unsignedInt() {
+  return regex(/\d+/);
+}
 export const int = inOrder(lit`-`.chain(opt), unsignedInt).map(
   (pair) => pair.first.unwrapOrDefault('') + pair.second
 );
@@ -35,21 +53,6 @@ export function lit(literal: string | TemplateStringsArray): Parser<string> {
         ParserError(`expect literal ${literal} but found ${expected}`)
       );
     }
-  });
-}
-
-export function regex(expr: RegExp) {
-  return makeParser((input) => {
-    const expected = input.src.slice(input.start).match(expr)?.[0];
-    if (
-      !expected ||
-      expected !== input.src.slice(input.start, input.start + expected.length)
-    ) {
-      return input.toFailure(
-        ParserError(`expect to match ${expr} but found ${expected}`)
-      );
-    }
-    return input.toSuccess(expected, expected.length);
   });
 }
 

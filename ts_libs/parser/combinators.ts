@@ -9,7 +9,6 @@ import {
   AllParser,
   getParser,
 } from './mod.ts';
-import { lit } from './primitive.ts';
 
 export function inOrder<T, U>(
   p1: AllParser<T>,
@@ -128,10 +127,16 @@ export function surrounded<T, S>(
   return inOrder(opening, parser, closing);
 }
 
+function noop() {
+  return makeParser((input) => {
+    return input.toSuccess(None, 0);
+  });
+}
+
 export function opt<T>(parser: AllParser<T>) {
   return getParser(parser)
     .map((val) => Some(val))
-    .or(lit``.map(() => None));
+    .or(noop);
 }
 
 // export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
