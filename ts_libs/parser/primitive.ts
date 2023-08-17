@@ -7,7 +7,7 @@ import {
   zeroOrMore,
 } from './combinators.ts';
 import { second } from './helpers.ts';
-import { AllParser, Parser, ParserError, Source, makeParser } from './mod.ts';
+import { AllParser, Parser, makeParser } from './mod.ts';
 
 export function regex(expr: RegExp) {
   return makeParser((input) => {
@@ -16,9 +16,7 @@ export function regex(expr: RegExp) {
       !expected ||
       expected !== input.src.slice(input.start, input.start + expected.length)
     ) {
-      return input.toFailure(
-        ParserError(`expect to match ${expr} but found ${expected}`)
-      );
+      return input.toFailure(`expect to match ${expr} but found ${expected}`);
     }
     return input.toSuccess(expected, expected.length);
   });
@@ -29,19 +27,25 @@ export function digit() {
 export function unsignedInt() {
   return regex(/\d+/);
 }
-export const int = inOrder(lit`-`.chain(opt), unsignedInt).map(
-  (pair) => pair.first.unwrapOrDefault('') + pair.second
-);
+export function int() {
+  return inOrder(lit`-`.chain(opt), unsignedInt).map(
+    (pair) => pair.first.unwrapOrDefault('') + pair.second
+  );
+}
 
-export const double = inOrder(int, lit`.`, unsignedInt).map(
-  ({ first, third }) => `${first}.${third}`
-);
+export function double() {
+  return inOrder(int, lit`.`, unsignedInt).map(
+    ({ first, third }) => `${first}.${third}`
+  );
+}
 
-export const number = oneOf(double, int).map(parseFloat);
+export function number() {
+  return oneOf(double, int).map(parseFloat);
+}
 
 export function lit(literal: string | TemplateStringsArray): Parser<string> {
   const literal_ = Array.isArray(literal) ? literal.join('') : literal;
-  return makeParser((input: Source) => {
+  return makeParser((input) => {
     const expected = input.src.slice(
       input.start,
       input.start + literal_.length
@@ -49,17 +53,32 @@ export function lit(literal: string | TemplateStringsArray): Parser<string> {
     if (expected === literal_) {
       return input.toSuccess(expected, literal_.length);
     } else {
-      return input.toFailure(
-        ParserError(`expect literal ${literal} but found ${expected}`)
-      );
+      return input.toFailure(`expect literal ${literal} but found ${expected}`);
     }
   });
 }
+export function any(): Parser<string> {
+  return makeParser((input) => {
+    const expected = input.src.slice(input.start, input.start + 1);
+    if (expected === '') {
+      return input.toFailure('Unexpected end of input');
+    }
+    return input.toSuccess(expected, 1);
+  });
+}
 
-export const ws = oneOrMore(lit` `).map(() => ` `);
+export function ws() {
+  return oneOrMore(lit` `).map(() => ` `);
+}
 
-export const os = zeroOrMore(lit` `).map((val) => val.join(''));
+export function os() {
+  return zeroOrMore(lit` `).map((val) => val.join(''));
+}
 
 export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os).map(second);
-export const letter = regex(/[a-zA-Z]/);
-export const letters = regex(/[a-zA-Z]+/);
+export function letter() {
+  return regex(/[a-zA-Z]/);
+}
+export function letters() {
+  return regex(/[a-zA-Z]+/);
+}

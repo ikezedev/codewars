@@ -3,7 +3,7 @@ import {
   assertEquals,
 } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
 
-import { lit, number, os, eatWs, letter } from './primitive.ts';
+import { lit, number, os, eatWs, letter, any } from './primitive.ts';
 import { Source } from './mod.ts';
 
 Deno.test('lit', () => {
@@ -26,7 +26,7 @@ Deno.test('lit', () => {
 });
 
 Deno.test('whitespace', () => {
-  assertEquals(os.parse(Source.fromString('123')).value.unwrapLeft(), '');
+  assertEquals(os().parse(Source.fromString('123')).value.unwrapLeft(), '');
   assertEquals(
     eatWs(lit`123`)
       .parse(Source.fromString('123'))
@@ -42,19 +42,23 @@ Deno.test('whitespace', () => {
 });
 
 Deno.test('letter', () => {
-  const res = letter.parse(Source.fromString('az'));
+  const res = letter().parse(Source.fromString('az'));
   assertEquals(res.value.unwrapLeft(), 'a');
   assertEquals(res.start, 1);
-  assert(letter.parse(Source.fromString('0')).value.isRight());
-  assert(letter.parse(Source.fromString('')).value.isRight());
+  assert(letter().parse(Source.fromString('0')).value.isRight());
+  assert(letter().parse(Source.fromString('')).value.isRight());
 });
 
 Deno.test('number', () => {
-  const res = number.parse(Source.fromString('123'));
+  const res = number().parse(Source.fromString('123'));
   assertEquals(res.value.unwrapLeft(), 123);
   assertEquals(res.start, 3);
-  const res1 = number.parse(Source.fromString('123.34'));
+  const res1 = number().parse(Source.fromString('123.34'));
   assertEquals(res1.value.unwrapLeft(), 123.34);
   assertEquals(res1.start, 6);
-  assert(number.parse(Source.fromString('invalid')).value.isRight());
+  assert(number().parse(Source.fromString('invalid')).value.isRight());
+});
+
+Deno.test('any', () => {
+  assert(any().parse(Source.fromString('')).value.isRight());
 });

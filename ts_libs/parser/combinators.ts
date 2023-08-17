@@ -1,14 +1,14 @@
-import { Either, None, Some } from '../adt/common.ts';
-import { Pair, Triple } from './helpers.ts';
+import { Either, Left, None, Right, Some } from '../adt/common.ts';
+import { Pair, Triple, join } from './helpers.ts';
 import {
   Parser,
   makeParser,
   Result,
-  ParserError,
   Source,
   AllParser,
   getParser,
 } from './mod.ts';
+import { any } from './primitive.ts';
 
 export function inOrder<T, U>(
   p1: AllParser<T>,
@@ -45,22 +45,17 @@ export function inOrder<T, U, V>(
 export function oneOrMore<T>(p: AllParser<T>): Parser<T[]> {
   return makeParser((input): Result<Either<T[], SyntaxError>> => {
     const res: Result<Either<T, SyntaxError>>[] = [];
-    let next = input;
-    while (input.src.length > next.start) {
-      const result = getParser(p).parse(next);
-      if (result.value.isRight()) {
-        break;
-      }
-      res.push(result);
-      next = result;
+    let next = getParser(p).parse(input);
+    while (input.src.length >= next.start && next.value.isLeft()) {
+      res.push(next);
+      next = getParser(p).parse(next);
     }
     if (res.length > 0) {
       return res.at(-1)!.map(() => Either.collectLeft(res.map((r) => r.value)));
     } else {
-      const err = ParserError(
+      return input.toFailure(
         'expected to match one or more variant but got none'
       );
-      return input.toFailure(err);
     }
   });
 }
@@ -76,8 +71,7 @@ export function oneOf<T>(...ps: Array<AllParser<T>>): Parser<T> {
     (ps: Array<AllParser<T>>) =>
     (input: Source): Result<Either<T, SyntaxError>> => {
       if (!ps.length) {
-        const err = ParserError(`did not match any variant at ${input.start}`);
-        return input.toFailure(err);
+        return input.toFailure(`did not match any variant at ${input.start}`);
       }
       const result = getParser(ps[0]).parse(input);
       if (result.value.isLeft()) {
@@ -139,33 +133,37 @@ export function opt<T>(parser: AllParser<T>) {
     .or(noop);
 }
 
-// export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
-//   return makeParser((input): Result<T[]> => {
-//     const res: Result<T>[] = [];
-//     try {
-//       let trial = getParser(stopAt).parse(input);
-//       let next = getParser(p).parse(input);
-//       res.push(next);
-//       while (input.src.length > next.start) {
-//         next = getParser(p).parse(next);
-//         res.push(next);
-//       }
-//     } catch (error) {
-//       if (res.length > 0) {
-//         return res.at(-1)!.map((_) => res.map((r) => r.value));
-//       }
-//       throw error;
-//     }
-//     return res.at(-1)!.map((_) => res.map((r) => r.value));
-//   });
-// }
+export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
+  return makeParser((input): Result<Either<T[], SyntaxError>> => {
+    const res: Result<Either<T, SyntaxError>>[] = [];
+    let stop = getParser(stopAt).parse(input);
+    let next = getParser(parser).parse(input);
+    while (
+      input.src.length >= next.start &&
+      next.value.isLeft() &&
+      stop.value.isRight()
+    ) {
+      res.push(next);
+      stop = getParser(stopAt).parse(next);
+      next = getParser(parser).parse(next);
+    }
+    if (res.length > 0) {
+      return res.at(-1)!.map(() => Either.collectLeft(res.map((r) => r.value)));
+    } else {
+      return input.toFailure('Unexpected end of input');
+    }
+  });
+}
 
-// export function recoverable<T>(main: AllParser<T>, continueAfter: AllParser<string>): Parser<Either<T, string>> {
-//   return makeParser((input): Result<Either<T, string>> => {
-//     try {
-//       return getParser(main).parse(input).map(Left);
-//     } catch (_) {
-//       return getParser(right).parse(input).map(Right);
-//     }
-//   });
-// }
+export function recoverable<T>(
+  main: AllParser<T>,
+  continueAt: AllParser<unknown>
+): Parser<Either<T, string>> {
+  return oneOf(
+    getParser(main).map(Left),
+    takeUntil(any, continueAt)
+      // TODO: review this with consideration to failing combinator tests
+      .chain(opt)
+      .map((v) => Right(v.map(join).unwrapOrDefault('')))
+  );
+}

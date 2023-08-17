@@ -13,8 +13,8 @@ export class Source {
     return new Result(Left(value), this.src, this.start + increment);
   }
 
-  toFailure<T extends SyntaxError>(value: T): Result<Either<never, T>> {
-    return new Result(Right(value), this.src, this.start);
+  toFailure(value: string): Result<Either<never, SyntaxError>> {
+    return new Result(Right(ParserError(value)), this.src, this.start);
   }
 
   static fromString(src: string) {
@@ -90,6 +90,13 @@ export class Parser<T> implements Map<T> {
 
   or(other: AllParser<T>) {
     return oneOf(this, other);
+  }
+
+  debug() {
+    return this.map((val) => {
+      console.debug(val);
+      return val;
+    });
   }
 }
 

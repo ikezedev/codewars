@@ -3,7 +3,7 @@ import {
   assertEquals,
 } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
 
-import { lit, number } from './primitive.ts';
+import { any, lit, number } from './primitive.ts';
 import { Source } from './mod.ts';
 import {
   inOrder,
@@ -11,9 +11,11 @@ import {
   oneOf,
   oneOrMore,
   opt,
+  recoverable,
   rightAssociative,
   separated,
   surrounded,
+  takeUntil,
   zeroOrMore,
 } from './combinators.ts';
 
@@ -132,4 +134,50 @@ Deno.test('rightAssociative', () => {
   );
   const res = right.parse(Source.fromString('123-100+23')).value.unwrapLeft();
   assertEquals(res, 0);
+});
+
+Deno.test('takeUntil', () => {
+  const parsed = takeUntil(any, lit`{`).parse(Source.fromString('123{}'));
+  assertEquals(parsed.start, 3);
+  assertEquals(parsed.value.unwrapLeft().join(''), '123');
+});
+
+type Op = { invalid: string } | { valid: string };
+type Expr = { a: Expr; b: Expr; op: Op } | number;
+const makeExpr = (a: Expr, b: Expr, op: Op) => ({
+  a,
+  b,
+  op,
+});
+
+Deno.test('recoverable leftAssociative', () => {
+  const main = leftAssociative<Expr, Op>(
+    number,
+    recoverable(oneOf(lit`-`, lit`+`), number).map((eith) =>
+      eith.match({
+        Right: (val) => ({ invalid: val } as Op),
+        Left: (val) => ({ valid: val }),
+      })
+    ),
+    ({ first, second, third }) => {
+      return makeExpr(first, third, second);
+    }
+  );
+  assert(main.parse(Source.fromString('123/100*23+48/34')).value.isLeft());
+});
+// TODO: fix test
+Deno.test('recoverable rightAssociative', () => {
+  const main = rightAssociative<Expr, Op>(
+    number,
+    recoverable(oneOf(lit`-`, lit`+`), number).map((eith) =>
+      eith.match({
+        Right: (val) => ({ invalid: val } as Op),
+        Left: (val) => ({ valid: val }),
+      })
+    ),
+    ({ first, second, third }) => {
+      return makeExpr(first, third, second);
+    }
+  );
+  assert(main.parse(Source.fromString('123-100*23+48/34')).value.isLeft());
 });
