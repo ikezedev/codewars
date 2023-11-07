@@ -161,9 +161,6 @@ export function recoverable<T>(
 ): Parser<Either<T, string>> {
   return oneOf(
     getParser(main).map(Left),
-    takeUntil(any, continueAt)
-      // TODO: review this with consideration to failing combinator tests
-      .chain(opt)
-      .map((v) => Right(v.map(join).unwrapOrDefault('')))
+    takeUntil(any, continueAt).map((v) => Right(v.join('')))
   );
 }
