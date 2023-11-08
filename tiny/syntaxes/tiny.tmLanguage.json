@@ -5,6 +5,12 @@
   "scopeName": "source.ty",
   "patterns": [
     {
+      "include": "#use_statement"
+    },
+    {
+      "include": "#let_statement"
+    },
+    {
       "include": "#constants"
     },
     {
@@ -15,9 +21,71 @@
     },
     {
       "include": "#variables"
+    },
+    {
+      "include": "#comments"
     }
   ],
   "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "comment": "documentation comments",
+          "name": "meta.comments.documentation.tiny",
+          "begin": "^\\s*///\\s*```(?:ty|tiny|)\\s*\\n",
+          "beginCaptures": {
+            "0": {
+              "name": "comment.line.documentation.tiny"
+            }
+          },
+          "end": "///\\s*```.*\\n(?!///)",
+          "endCaptures": {
+            "0": {
+              "name": "comment.line.documentation.tiny"
+            }
+          },
+          "patterns": [
+            {
+              "match": "^\\s*///",
+              "name": "comment.line.documentation.tiny"
+            },
+            {
+              "include": "#use_statement"
+            },
+            {
+              "include": "#let_statement"
+            },
+            {
+              "include": "#constants"
+            },
+            {
+              "include": "#functions"
+            },
+            {
+              "include": "#keywords"
+            },
+            {
+              "include": "#variables"
+            },
+            {
+              "comment": "line comments",
+              "name": "comment.line.double-slash.tiny",
+              "match": "\\s*//.*"
+            }
+          ]
+        },
+        {
+          "comment": "documentation comments",
+          "name": "comment.line.documentation.tiny",
+          "match": "^\\s*///.*"
+        },
+        {
+          "comment": "line comments",
+          "name": "comment.line.double-slash.tiny",
+          "match": "\\s*//.*"
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
@@ -27,7 +95,12 @@
         {
           "comment": "math operators",
           "name": "keyword.operator.math.tiny",
-          "match": "(([+%]|(\\*(?!\\w)))(?!=))|(-(?!>))|(/(?!/))"
+          "match": "(([+%]|(\\*(?!\\w)))(?!=))|(-(?!>))|(/(?<!//)(?!/))"
+        },
+        {
+          "comment": "namespace operator",
+          "name": "keyword.operator.namespace.tiny",
+          "match": "::"
         },
         {
           "comment": "fn",
@@ -41,7 +114,7 @@
         },
         {
           "comment": "storage keywords",
-          "name": "keyword.other.tiny storage.type.tiny",
+          "name": "keyword.other.let.tiny",
           "match": "\\b(let)\\b"
         },
         {
@@ -53,6 +126,11 @@
           "comment": "pub",
           "name": "keyword.other.pub.tiny",
           "match": "\\bpub\\b"
+        },
+        {
+          "comment": "use",
+          "name": "storage.modifier.use.tiny",
+          "match": "\\buse\\b"
         }
       ]
     },
@@ -122,6 +200,57 @@
           ]
         }
       ]
+    },
+    "use_statement": {
+      "patterns": [
+        {
+          "comment": "use statement",
+          "name": "meta.statement.use.tiny",
+          "match": "\\b(use)\\s+(\\w+)(::)(?:(\\w+)|{\\s*(.*)\\s*})",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.use.tiny"
+            },
+            "2": {
+              "name": "variable.parameter.tiny entity.name.module.tiny"
+            },
+            "3": {
+              "name": "keyword.operator.namespace.tiny"
+            },
+            "4": {
+              "name": "variable.parameter.tiny"
+            },
+            "5": {
+              "patterns": [
+                {
+                  "match": "\\b([A-Za-z0-9_]+),?\\b",
+                  "captures": {
+                    "1": {
+                      "name": "variable.parameter.tiny"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "let_statement": {
+      "comment": "let statement",
+      "name": "meta.let.definition.tiny",
+      "match": "\\b(let)\\s+([a-z0-9_]+)\\s*(=)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.let.tiny"
+        },
+        "2": {
+          "name": "variable.name.tiny"
+        },
+        "3": {
+          "name": "keyword.operator.assignment.equal.tiny"
+        }
+      }
     },
     "variables": {
       "patterns": [

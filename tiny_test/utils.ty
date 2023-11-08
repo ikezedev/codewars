@@ -1,0 +1,21 @@
+/// Subtracts second param from first
+/// ```ty
+/// let test = sub(2, 1);
+/// assert_eq(test, 1);
+/// ```
+pub fn sub a b => a - b;
+
+/// Multiplies second and first
+/// ```ty
+/// let test = mult(2, 1);
+/// assert_eq(test, 1);
+/// ```
+pub fn mult a b => a * b;
+
+/// Divides first param by second
+/// ```tiny
+/// let test = div(2, 1);
+/// assert_eq(test, 1);
+/// fn test a => assert(a);
+/// ```
+pub fn div a b => a / b;
