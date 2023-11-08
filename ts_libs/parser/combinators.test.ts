@@ -96,7 +96,7 @@ Deno.test('surrounded', () => {
   const res = surrounded(lit`(`, number, lit`)`)
     .parse(Source.fromString('(123)'))
     .value.unwrapLeft();
-  assertEquals(res.second, 123);
+  assertEquals(res, 123);
 });
 
 Deno.test('opt', () => {
@@ -165,7 +165,7 @@ Deno.test('recoverable leftAssociative', () => {
   );
   assert(main.parse(Source.fromString('123/100*23+48/34')).value.isLeft());
 });
-// TODO: fix test
+
 Deno.test('recoverable rightAssociative', () => {
   const main = rightAssociative<Expr, Op>(
     number,

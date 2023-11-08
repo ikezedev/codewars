@@ -6,7 +6,6 @@ import {
   surrounded,
   zeroOrMore,
 } from './combinators.ts';
-import { second } from './helpers.ts';
 import { AllParser, Parser, makeParser } from './mod.ts';
 
 export function regex(expr: RegExp) {
@@ -68,14 +67,18 @@ export function any(): Parser<string> {
 }
 
 export function ws() {
-  return oneOrMore(lit` `).map(() => ` `);
+  return oneOrMore(oneOf(lit` `, lit`\n`, lit`\t`, lit`\r`)).map((res) =>
+    res.join('')
+  );
 }
 
 export function os() {
-  return zeroOrMore(lit` `).map((val) => val.join(''));
+  return zeroOrMore(oneOf(lit` `, lit`\n`, lit`\t`, lit`\r`)).map((val) =>
+    val.join('')
+  );
 }
 
-export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os).map(second);
+export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os);
 export function letter() {
   return regex(/[a-zA-Z]/);
 }

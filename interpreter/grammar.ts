@@ -92,7 +92,7 @@ export const expression = oneOf(fnExpr, additive);
 
 export function factor(): Parser<Expr> {
   return oneOf<Expr>(
-    number.map((val) => new NumberExpr(val)),
+    number().map((val) => new NumberExpr(val)),
     assignment,
     fnCall,
     identifier,

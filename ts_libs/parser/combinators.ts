@@ -1,5 +1,5 @@
 import { Either, Left, None, Right, Some } from '../adt/common.ts';
-import { Pair, Triple, join } from './helpers.ts';
+import { Pair, Triple } from './helpers.ts';
 import {
   Parser,
   makeParser,
@@ -117,8 +117,8 @@ export function surrounded<T, S>(
   opening: AllParser<S>,
   parser: AllParser<T>,
   closing: AllParser<S>
-): Parser<Triple<S, T, S>> {
-  return inOrder(opening, parser, closing);
+): Parser<T> {
+  return inOrder(opening, parser, closing).map(({ second }) => second);
 }
 
 function noop() {

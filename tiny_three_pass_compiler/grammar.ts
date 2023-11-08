@@ -19,7 +19,7 @@ import {
 import { Parser } from 'lib/parser/mod.ts';
 import { second } from 'lib/parser/helpers.ts';
 
-const id = letters.map((a) => new Id(a));
+const id = letters().map((a) => new Id(a));
 const argList = separated(id, ws)
   .map(({ first, second }) =>
     [first, ...second.map((p) => p.second)].map((e, i) => e.toArg(i))
@@ -29,7 +29,7 @@ const argList = separated(id, ws)
 
 function factor() {
   return oneOf<Expr>(
-    number.map((n) => new NumberExpr(n)),
+    number().map((n) => new NumberExpr(n)),
     id,
     surrounded(eatWs(lit`(`), expression, eatWs(lit`)`)).map(second)
   );

@@ -1,0 +1,25 @@
+{
+  "name": "tiny",
+  "displayName": "Tiny",
+  "description": "Tiny language support",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.83.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "tiny",
+      "aliases": ["Tiny", "tiny"],
+      "extensions": [".ty"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "tiny",
+      "scopeName": "source.ty",
+      "path": "./syntaxes/tiny.tmLanguage.json"
+    }]
+  }
+}

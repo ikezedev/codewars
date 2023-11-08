@@ -11,7 +11,7 @@ function factor(): Parser<number> {
   return oneOf(
     number,
     inOrder(lit`-`, expr).map((p) => -p.second),
-    surrounded(eatWs(lit`(`), expr, eatWs(lit`)`)).map((p) => p.second)
+    surrounded(eatWs(lit`(`), expr, eatWs(lit`)`)).map((p) => p)
   );
 }
 
