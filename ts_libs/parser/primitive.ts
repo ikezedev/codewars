@@ -10,10 +10,11 @@ import { AllParser, Parser, makeParser } from './mod.ts';
 
 export function regex(expr: RegExp) {
   return makeParser((input) => {
-    const expected = input.src.slice(input.start).match(expr)?.[0];
+    const expected = input.src.slice(input.current).match(expr)?.[0];
     if (
       !expected ||
-      expected !== input.src.slice(input.start, input.start + expected.length)
+      expected !==
+        input.src.slice(input.current, input.current + expected.length)
     ) {
       return input.toFailure(`expect to match ${expr} but found ${expected}`);
     }
@@ -46,8 +47,8 @@ export function lit(literal: string | TemplateStringsArray): Parser<string> {
   const literal_ = Array.isArray(literal) ? literal.join('') : literal;
   return makeParser((input) => {
     const expected = input.src.slice(
-      input.start,
-      input.start + literal_.length
+      input.current,
+      input.current + literal_.length
     );
     if (expected === literal_) {
       return input.toSuccess(expected, literal_.length);
@@ -58,7 +59,7 @@ export function lit(literal: string | TemplateStringsArray): Parser<string> {
 }
 export function any(): Parser<string> {
   return makeParser((input) => {
-    const expected = input.src.slice(input.start, input.start + 1);
+    const expected = input.src.slice(input.current, input.current + 1);
     if (expected === '') {
       return input.toFailure('Unexpected end of input');
     }

@@ -3,18 +3,30 @@ import { inOrder, oneOf } from './combinators.ts';
 import { Either, Left, Right } from '../adt/common.ts';
 
 export class Source {
-  constructor(public src: string, public start: number) {}
+  constructor(public src: string, public current: number) {}
 
   toResult<T>(value: T, increment: number): Result<T> {
-    return new Result(value, this.src, this.start + increment);
+    return new Result(
+      value,
+      this.src,
+      Span.new(this.current, this.current + increment)
+    );
   }
 
   toSuccess<T>(value: T, increment: number): Result<Either<T, never>> {
-    return new Result(Left(value), this.src, this.start + increment);
+    return new Result(
+      Left(value),
+      this.src,
+      Span.new(this.current, this.current + increment)
+    );
   }
 
   toFailure(value: string): Result<Either<never, SyntaxError>> {
-    return new Result(Right(ParserError(value)), this.src, this.start);
+    return new Result(
+      Right(ParserError(value)),
+      this.src,
+      Span.new(this.current, this.current)
+    );
   }
 
   static fromString(src: string) {
@@ -22,24 +34,36 @@ export class Source {
   }
 }
 
-export class Result<T> extends Source implements Map<T> {
-  constructor(public value: T, public src: string, public start: number) {
-    super(src, start);
+export class Span {
+  constructor(public start: number, public end: number) {}
+
+  static new(start: number, end: number) {
+    return new Span(start, end);
   }
-  map<V>(fn: (value: T) => V): Result<V> {
-    return new Result(fn(this.value), this.src, this.start);
+}
+
+export class Result<T> extends Source implements Map<T> {
+  constructor(public value: T, public src: string, public span: Span) {
+    super(src, span.end);
+  }
+  map<V>(fn: (value: T, span: Span) => V): Result<V> {
+    return new Result(fn(this.value, this.span), this.src, this.span);
   }
   mapLeft<V, L, R>(
     this: Result<Either<L, R>>,
-    fn: (value: L) => V
+    fn: (value: L, span: Span) => V
   ): Result<Either<V, R>> {
-    return new Result(this.value.mapLeft(fn), this.src, this.start);
+    return new Result(
+      this.value.mapLeft((l) => fn(l, this.span)),
+      this.src,
+      this.span
+    );
   }
   transpose<L, R>(this: Result<Either<L, R>>): Either<Result<L>, R> {
-    const { src, start } = this;
+    const { src, span } = this;
     return this.value.match({
       Left(val) {
-        return Left(new Result(val, src, start));
+        return Left(new Result(val, src, span));
       },
       Right(val) {
         return Right(val);
@@ -50,19 +74,23 @@ export class Result<T> extends Source implements Map<T> {
     this: Result<Either<L1, R>>,
     fn: (source: Result<Either<L1, R>>) => Result<Either<L2, R>>
   ): Result<Either<Pair<L1, L2>, R>> {
-    const { src, start } = this;
-    return this.mapLeft((l1) =>
+    const { src } = this;
+    const result = this.mapLeft((l1) =>
       fn(this)
         .mapLeft((l2) => new Pair(l1, l2))
         .transpose()
-    )
-      .value.flattenLeft()
-      .match({
-        Right: (val) => new Result(Right<R, Pair<L1, L2>>(val), src, start),
-        Left(res) {
-          return res.map((val) => Left(val));
-        },
-      });
+    );
+
+    return result.value.flattenLeft().match({
+      Right: (val) => new Result(Right<R, Pair<L1, L2>>(val), src, result.span),
+      Left(res) {
+        return new Result(
+          Left<Pair<L1, L2>, R>(res.value),
+          src,
+          Span.new(result.span.start, res.span.end)
+        );
+      },
+    });
   }
 }
 
@@ -74,9 +102,9 @@ export class Parser<T> implements Map<T> {
     public parse: (input: Source) => Result<Either<T, SyntaxError>>
   ) {}
 
-  map<V>(fn: (value: T) => V): Parser<V> {
+  map<V>(fn: (value: T, span: Span) => V): Parser<V> {
     return makeParser((input) =>
-      this.parse(input).map((res) => res.mapLeft(fn))
+      this.parse(input).map((res, span) => res.mapLeft((l) => fn(l, span)))
     );
   }
 
@@ -94,6 +122,20 @@ export class Parser<T> implements Map<T> {
 
   debug() {
     return this.map((val) => {
+      console.debug(val);
+      return val;
+    });
+  }
+  mapRes<V>(
+    fn: (
+      result: Result<Either<T, SyntaxError>>
+    ) => Result<Either<V, SyntaxError>>
+  ): Parser<V> {
+    return makeParser((input) => fn(this.parse(input)));
+  }
+
+  debugRes() {
+    return this.mapRes((val) => {
       console.debug(val);
       return val;
     });

@@ -7,6 +7,7 @@ import {
   Source,
   AllParser,
   getParser,
+  Span,
 } from './mod.ts';
 import { any } from './primitive.ts';
 
@@ -46,12 +47,14 @@ export function oneOrMore<T>(p: AllParser<T>): Parser<T[]> {
   return makeParser((input): Result<Either<T[], SyntaxError>> => {
     const res: Result<Either<T, SyntaxError>>[] = [];
     let next = getParser(p).parse(input);
-    while (input.src.length >= next.start && next.value.isLeft()) {
+    while (input.src.length >= next.current && next.value.isLeft()) {
       res.push(next);
       next = getParser(p).parse(next);
     }
     if (res.length > 0) {
-      return res.at(-1)!.map(() => Either.collectLeft(res.map((r) => r.value)));
+      const value = Either.collectLeft(res.map((r) => r.value));
+      const [{ start }, { end }] = [res[0].span, res.at(-1)!.span];
+      return new Result(value, input.src, Span.new(start, end));
     } else {
       return input.toFailure(
         'expected to match one or more variant but got none'
@@ -71,7 +74,7 @@ export function oneOf<T>(...ps: Array<AllParser<T>>): Parser<T> {
     (ps: Array<AllParser<T>>) =>
     (input: Source): Result<Either<T, SyntaxError>> => {
       if (!ps.length) {
-        return input.toFailure(`did not match any variant at ${input.start}`);
+        return input.toFailure(`did not match any variant at ${input.current}`);
       }
       const result = getParser(ps[0]).parse(input);
       if (result.value.isLeft()) {
@@ -89,11 +92,11 @@ export function separated<T, S>(parser: AllParser<T>, separator: AllParser<S>) {
 export function leftAssociative<T, S>(
   parser: AllParser<T>,
   separator: AllParser<S>,
-  transform: (entry: Triple<T, S, T>) => T
+  transform: (entry: Triple<T, S, T>, span: Span) => T
 ) {
-  return separated(parser, separator).map(({ first, second: rest }) =>
+  return separated(parser, separator).map(({ first, second: rest }, span) =>
     rest.reduce(
-      (acc, next) => transform(new Triple(acc, next.first, next.second)),
+      (acc, next) => transform(new Triple(acc, next.first, next.second), span),
       first
     )
   );
@@ -102,12 +105,13 @@ export function leftAssociative<T, S>(
 export function rightAssociative<T, S>(
   parser: AllParser<T>,
   separator: AllParser<S>,
-  transform: (entry: Triple<T, S, T>) => T
+  transform: (entry: Triple<T, S, T>, span: Span) => T
 ) {
   return inOrder(zeroOrMore(inOrder(parser, separator)), parser).map(
-    ({ first: rest, second: last }) =>
+    ({ first: rest, second: last }, span) =>
       rest.reduceRight(
-        (acc, next) => transform(new Triple(acc, next.second, next.first)),
+        (acc, next) =>
+          transform(new Triple(acc, next.second, next.first), span),
         last
       )
   );
@@ -139,7 +143,7 @@ export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
     let stop = getParser(stopAt).parse(input);
     let next = getParser(parser).parse(input);
     while (
-      input.src.length >= next.start &&
+      input.src.length >= next.current &&
       next.value.isLeft() &&
       stop.value.isRight()
     ) {
@@ -148,7 +152,9 @@ export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
       next = getParser(parser).parse(next);
     }
     if (res.length > 0) {
-      return res.at(-1)!.map(() => Either.collectLeft(res.map((r) => r.value)));
+      const value = Either.collectLeft(res.map((r) => r.value));
+      const [{ start }, { end }] = [res[0].span, res.at(-1)!.span];
+      return new Result(value, input.src, Span.new(start, end));
     } else {
       return input.toFailure('Unexpected end of input');
     }
