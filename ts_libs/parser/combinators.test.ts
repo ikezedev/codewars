@@ -40,6 +40,13 @@ Deno.test('inOrder', () => {
   assertEquals(value2.first, '123');
   assertEquals(value2.second, '456');
   assertEquals(value2.third, '7');
+
+  const { value: _, span: spError } = inOrder(lit`123`, lit`456`, lit`7`).parse(
+    Source.fromString('4567')
+  );
+
+  assertEquals(spError.start, 0);
+  assertEquals(spError.end, 0);
 });
 
 Deno.test('oneOf', () => {

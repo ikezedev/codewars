@@ -1,3 +1,4 @@
+import { Either } from 'lib/adt';
 import {
   inOrder,
   oneOf,
@@ -6,7 +7,7 @@ import {
   surrounded,
   zeroOrMore,
 } from './combinators.ts';
-import { AllParser, Parser, makeParser } from './mod.ts';
+import { AllParser, Parser, Result, makeParser } from './mod.ts';
 
 export function regex(expr: RegExp) {
   return makeParser((input) => {
@@ -53,7 +54,9 @@ export function lit(literal: string | TemplateStringsArray): Parser<string> {
     if (expected === literal_) {
       return input.toSuccess(expected, literal_.length);
     } else {
-      return input.toFailure(`expect literal ${literal} but found ${expected}`);
+      return input.toFailure(
+        `expected literal "${literal}" but found "${expected}"`
+      );
     }
   });
 }
@@ -64,6 +67,17 @@ export function any(): Parser<string> {
       return input.toFailure('Unexpected end of input');
     }
     return input.toSuccess(expected, 1);
+  });
+}
+
+export function not(p: Parser<unknown>): Parser<null> {
+  return makeParser((input) => {
+    const res = p.parse(input);
+    return res.value.match({
+      Right: () =>
+        input.toSuccess(null, 0) as Result<Either<null, SyntaxError>>,
+      Left: () => input.toFailure('Expected not to match variant'),
+    });
   });
 }
 
@@ -80,6 +94,8 @@ export function os() {
 }
 
 export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os);
+export const trimStart = <T>(p: AllParser<T>) =>
+  inOrder(os, p).map((r) => r.second);
 export function letter() {
   return regex(/[a-zA-Z]/);
 }

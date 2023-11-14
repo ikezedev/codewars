@@ -12,7 +12,7 @@ export class Compiler {
   }
 
   pass2(given: Expr) {
-    return given.pass2();
+    return given.pass3();
   }
 
   pass3(pass2: Expr) {

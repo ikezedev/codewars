@@ -194,6 +194,7 @@
             }
           },
           "patterns": [
+            { "include": "#functions" },
             { "include": "#constants" },
             { "include": "#keywords" },
             { "include": "#variables" }

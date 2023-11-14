@@ -1,4 +1,4 @@
-import { Either, Left, None, Right, Some } from '../adt/common.ts';
+import { Either, Left, None, Option, Right, Some } from '../adt/common.ts';
 import { Pair, Triple } from './helpers.ts';
 import {
   Parser,
@@ -8,6 +8,7 @@ import {
   AllParser,
   getParser,
   Span,
+  PError,
 } from './mod.ts';
 import { any } from './primitive.ts';
 
@@ -71,18 +72,26 @@ export function zeroOrMore<T>(p: AllParser<T>): Parser<T[]> {
 
 export function oneOf<T>(...ps: Array<AllParser<T>>): Parser<T> {
   const parse =
-    (ps: Array<AllParser<T>>) =>
+    (
+      ps: Array<AllParser<T>>,
+      lastResult: Option<Result<Either<T, SyntaxError>>>
+    ) =>
     (input: Source): Result<Either<T, SyntaxError>> => {
       if (!ps.length) {
-        return input.toFailure(`did not match any variant at ${input.current}`);
+        const lastError = lastResult.isSome()
+          ? '\n' + lastResult.unwrap().value.unwrapRight().message
+          : '';
+        return input.toFailure(
+          `did not match any variant at ${input.current}` + lastError
+        );
       }
       const result = getParser(ps[0]).parse(input);
       if (result.value.isLeft()) {
         return result;
       }
-      return parse(ps.slice(1))(input);
+      return parse(ps.slice(1), Some(result))(input);
     };
-  return makeParser(parse(ps));
+  return makeParser(parse(ps, None));
 }
 
 export function separated<T, S>(parser: AllParser<T>, separator: AllParser<S>) {
@@ -153,11 +162,16 @@ export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
     }
     if (res.length > 0) {
       const value = Either.collectLeft(res.map((r) => r.value));
-      const [{ start }, { end }] = [res[0].span, res.at(-1)!.span];
+      const { start } = res[0].span;
+      const { end } = res.at(-1)!.span;
       return new Result(value, input.src, Span.new(start, end));
-    } else {
-      return input.toFailure('Unexpected end of input');
     }
+
+    if (stop.value.isLeft() && next.value.isLeft()) {
+      return input.toSuccess([], 0);
+    }
+
+    return input.toFailure('Unexpected end of input');
   });
 }
 
@@ -165,8 +179,17 @@ export function recoverable<T>(
   main: AllParser<T>,
   continueAt: AllParser<unknown>
 ): Parser<Either<T, string>> {
-  return oneOf(
-    getParser(main).map(Left),
-    takeUntil(any, continueAt).map((v) => Right(v.join('')))
-  );
+  return makeParser((input) => {
+    return oneOf(
+      getParser(main).map(Left),
+      takeUntil(any, continueAt).map((v) => Right(v.join('')))
+    )
+      .map((val, span) =>
+        val.mapRight((r) => {
+          input.addError(PError.new(span, r));
+          return r;
+        })
+      )
+      .parse(input);
+  });
 }

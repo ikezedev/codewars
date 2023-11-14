@@ -4,6 +4,7 @@ abstract class Option<T> {
   abstract map<U>(fn: (val: T) => U): Option<U>;
 
   abstract unwrapOr(fn: () => T): T;
+  abstract unwrap(): T;
 
   abstract unwrapOrDefault(def: T): T;
   abstract zip<U>(other: Option<U>): Option<Pair<T, U>>;
@@ -64,6 +65,10 @@ class Some_<T> extends Option<T> {
     return new Some_(fn(this.val));
   }
 
+  unwrap(): T {
+    return this.val;
+  }
+
   unwrapOr(): T {
     return this.val;
   }
@@ -95,6 +100,10 @@ class None_<T> extends Option<T> {
     return fn();
   }
 
+  unwrap(): T {
+    throw new Error('Tried to unwrap a None variant');
+  }
+
   unwrapOrDefault(def: T) {
     return def;
   }
@@ -122,6 +131,8 @@ abstract class Either<L, R> {
   abstract isLeft(): boolean;
   abstract isRight(): boolean;
   abstract swap(): Either<R, L>;
+
+  abstract ok(): Option<L>;
 
   match<U>(patterns: { Left(val: L): U; Right(val: R): U }): U {
     if (this.isLeft()) {
@@ -234,6 +245,10 @@ class Right_<R, L> extends Either<L, R> {
   unwrapRight(): R {
     return this.val;
   }
+
+  ok(): Option<L> {
+    return None;
+  }
 }
 
 class Left_<L, R> extends Either<L, R> {
@@ -302,6 +317,10 @@ class Left_<L, R> extends Either<L, R> {
 
   unwrapRight(): R {
     throw new Error('Tried to unwrap left on a right variant');
+  }
+
+  ok(): Option<L> {
+    return Some(this.val);
   }
 }
 

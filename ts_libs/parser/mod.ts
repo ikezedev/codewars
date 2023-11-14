@@ -1,9 +1,21 @@
 import { Map, Pair } from './helpers.ts';
-import { inOrder, oneOf } from './combinators.ts';
+import { inOrder, oneOf, opt, recoverable } from './combinators.ts';
 import { Either, Left, Right } from '../adt/common.ts';
+import { not, trimStart } from 'lib/parser/primitive.ts';
+import { assertThrows } from 'https://deno.land/std@0.206.0/assert/assert_throws.ts';
 
+export class PError {
+  constructor(public span: Span, public message?: string) {}
+  static new(span: Span, message?: string) {
+    return new PError(span, message);
+  }
+}
 export class Source {
-  constructor(public src: string, public current: number) {}
+  constructor(
+    public src: string,
+    public current: number,
+    public error: PError[] = []
+  ) {}
 
   toResult<T>(value: T, increment: number): Result<T> {
     return new Result(
@@ -11,6 +23,10 @@ export class Source {
       this.src,
       Span.new(this.current, this.current + increment)
     );
+  }
+
+  addError(err: PError) {
+    this.error.push(err);
   }
 
   toSuccess<T>(value: T, increment: number): Result<Either<T, never>> {
@@ -23,7 +39,7 @@ export class Source {
 
   toFailure(value: string): Result<Either<never, SyntaxError>> {
     return new Result(
-      Right(ParserError(value)),
+      Right(ParserError(value, Span.new(this.current, this.current))),
       this.src,
       Span.new(this.current, this.current)
     );
@@ -94,8 +110,10 @@ export class Result<T> extends Source implements Map<T> {
   }
 }
 
-export const ParserError = (msg: string) =>
-  new SyntaxError(`[ParserError]: ${msg}`);
+export const ParserError = (msg: string, span: Span) =>
+  new SyntaxError(
+    `[ParserError]: ${msg}. Span {start: ${span.start}, end: ${span.end}}`
+  );
 
 export class Parser<T> implements Map<T> {
   constructor(
@@ -126,6 +144,19 @@ export class Parser<T> implements Map<T> {
       return val;
     });
   }
+
+  recoverAt<V>(continueAt: AllParser<V>) {
+    return recoverable(this, continueAt);
+  }
+
+  recover() {
+    return recoverable(this, not(this));
+  }
+
+  trimStart() {
+    return this.chain(trimStart);
+  }
+
   mapRes<V>(
     fn: (
       result: Result<Either<T, SyntaxError>>
@@ -136,9 +167,17 @@ export class Parser<T> implements Map<T> {
 
   debugRes() {
     return this.mapRes((val) => {
-      console.debug(val);
+      console.debug({ value: val.value, span: val.span });
       return val;
     });
+  }
+
+  discard(p: Parser<unknown>): Parser<T> {
+    return this.and(p).map((r) => r.first);
+  }
+
+  discardOpt(p: AllParser<unknown>): Parser<T> {
+    return this.and(opt(p)).map((r) => r.first);
   }
 }
 

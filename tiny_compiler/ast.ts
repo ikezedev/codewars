@@ -1,4 +1,5 @@
-import { Source } from 'lib/parser/mod.ts';
+import { Span } from 'lib/parser/mod.ts';
+import { None, Option } from 'lib/adt';
 
 export abstract class Expr {
   abstract evaluate(): unknown;
@@ -10,12 +11,12 @@ export abstract class Expr {
 }
 
 export class Id extends Expr {
-  constructor(public name: string) {
+  constructor(public name: string, public span: Span) {
     super();
   }
 
-  toArg(pos: number) {
-    return new Arg(this.name, pos);
+  toArg(pos: number, span: Span) {
+    return new Arg(this.name, pos, span);
   }
 
   pass2(): Expr {
@@ -35,15 +36,15 @@ export class Id extends Expr {
   }
 
   toArgFromMap(map: Record<string, number>) {
-    return this.toArg(map[this.name]);
+    return this.toArg(map[this.name], this.span);
   }
 
   evaluate() {}
 }
 
 export class Arg extends Id {
-  constructor(public name: string, public pos: number) {
-    super(name);
+  constructor(public name: string, public pos: number, public span: Span) {
+    super(name, span);
   }
   evaluate() {}
 
@@ -92,14 +93,14 @@ export class NumberExpr extends Expr {
       n: this.value,
     };
   }
-  constructor(public value: number) {
+  constructor(public value: number, public span: Span) {
     super();
   }
 }
 
 export abstract class BinaryOp extends Expr {
   abstract sign: string;
-  constructor(public left: Expr, public right: Expr) {
+  constructor(public left: Expr, public right: Expr, public span: Span) {
     super();
   }
   abstract prepare(ctx: Record<string, number>): BinaryOp;
@@ -152,7 +153,7 @@ export abstract class BinaryOp extends Expr {
 export class Plus extends BinaryOp {
   sign = '+';
   prepare(ctx: Record<string, number>): Plus {
-    return new Plus(this.left.prepare(ctx), this.right.prepare(ctx));
+    return new Plus(this.left.prepare(ctx), this.right.prepare(ctx), this.span);
   }
   evalFn(a: number, b: number): number {
     return a + b;
@@ -162,16 +163,20 @@ export class Plus extends BinaryOp {
     const leftP = this.left.pass2();
     const rightP = this.right.pass2();
     if (leftP instanceof NumberExpr && rightP instanceof NumberExpr) {
-      return new NumberExpr(this.evalFn(leftP.value, rightP.value));
+      return new NumberExpr(this.evalFn(leftP.value, rightP.value), this.span);
     }
-    return new Plus(leftP, rightP);
+    return new Plus(leftP, rightP, this.span);
   }
 }
 
 export class Minus extends BinaryOp {
   sign = '-';
   prepare(ctx: Record<string, number>): Minus {
-    return new Minus(this.left.prepare(ctx), this.right.prepare(ctx));
+    return new Minus(
+      this.left.prepare(ctx),
+      this.right.prepare(ctx),
+      this.span
+    );
   }
   evalFn(a: number, b: number): number {
     return a - b;
@@ -180,16 +185,16 @@ export class Minus extends BinaryOp {
     const leftP = this.left.pass2();
     const rightP = this.right.pass2();
     if (leftP instanceof NumberExpr && rightP instanceof NumberExpr) {
-      return new NumberExpr(this.evalFn(leftP.value, rightP.value));
+      return new NumberExpr(this.evalFn(leftP.value, rightP.value), this.span);
     }
-    return new Minus(leftP, rightP);
+    return new Minus(leftP, rightP, this.span);
   }
 }
 
 export class Mult extends BinaryOp {
   sign = '*';
   prepare(ctx: Record<string, number>): Mult {
-    return new Mult(this.left.prepare(ctx), this.right.prepare(ctx));
+    return new Mult(this.left.prepare(ctx), this.right.prepare(ctx), this.span);
   }
   evalFn(a: number, b: number): number {
     return a * b;
@@ -198,16 +203,20 @@ export class Mult extends BinaryOp {
     const leftP = this.left.pass2();
     const rightP = this.right.pass2();
     if (leftP instanceof NumberExpr && rightP instanceof NumberExpr) {
-      return new NumberExpr(this.evalFn(leftP.value, rightP.value));
+      return new NumberExpr(this.evalFn(leftP.value, rightP.value), this.span);
     }
-    return new Mult(leftP, rightP);
+    return new Mult(leftP, rightP, this.span);
   }
 }
 
 export class Divide extends BinaryOp {
   sign = '/';
   prepare(ctx: Record<string, number>): Divide {
-    return new Divide(this.left.prepare(ctx), this.right.prepare(ctx));
+    return new Divide(
+      this.left.prepare(ctx),
+      this.right.prepare(ctx),
+      this.span
+    );
   }
   evalFn(a: number, b: number): number {
     return a / b;
@@ -216,27 +225,29 @@ export class Divide extends BinaryOp {
     const leftP = this.left.pass2();
     const rightP = this.right.pass2();
     if (leftP instanceof NumberExpr && rightP instanceof NumberExpr) {
-      return new NumberExpr(this.evalFn(leftP.value, rightP.value));
+      return new NumberExpr(this.evalFn(leftP.value, rightP.value), this.span);
     }
-    return new Divide(leftP, rightP);
+    return new Divide(leftP, rightP, this.span);
   }
 }
 
 export class InvalidExpr extends Expr {
-  constructor(public start: number, private end: number) {
+  constructor(public span: Span) {
     super();
   }
 
   line(source: string): [start: number, end: number] {
-    const start = [...source.slice(0, this.start)].filter(
+    const start = [...source.slice(0, this.span.start)].filter(
       (c) => c === '\n'
     ).length;
-    const end = [...source.slice(0, this.end)].filter((c) => c === '\n').length;
+    const end = [...source.slice(0, this.span.end)].filter(
+      (c) => c === '\n'
+    ).length;
     return [start, end];
   }
 
   extract(source: string): string {
-    return source.slice(this.start, this.end + 1);
+    return source.slice(this.span.start, this.span.end + 1);
   }
 
   evaluate(): unknown {
@@ -293,7 +304,7 @@ export class FnCall extends Expr {
   pass3(): string[] {
     throw new Error('Method not implemented.');
   }
-  constructor(public name: Id, public args: Expr[]) {
+  constructor(public name: Id, public args: Expr[], public span: Span) {
     super();
   }
 }
@@ -305,7 +316,9 @@ export class Fn extends Statement {
     public name: Id,
     public args: Arg[],
     public body: Statement[],
-    public isPublic: boolean
+    public isPublic: boolean,
+    public span: Span,
+    public documentation: Option<DocComment> = None
   ) {
     super();
   }
@@ -323,19 +336,85 @@ export class Fn extends Statement {
 }
 
 export class Assignment extends Statement {
-  constructor(public name: Id, public value: Expr) {
+  constructor(
+    public name: Id,
+    public value: Expr,
+    public span: Span,
+    public isGlobal = false
+  ) {
+    super();
+  }
+}
+
+export class Keyword extends Id {
+  constructor(public name: string, span: Span) {
+    super(name, span);
+  }
+}
+
+export class RecAssignment extends Statement {
+  constructor(
+    public keyword: Keyword,
+    public name: Option<Id>,
+    public value: Option<Expr>,
+    public span: Span,
+    public isGlobal = false
+  ) {
     super();
   }
 }
 
 export class ExprStatement extends Statement {
-  constructor(public expr: Expr) {
+  constructor(public expr: Expr, public span: Span) {
     super();
   }
 }
 
 export class Return extends Statement {
-  constructor(public value: Expr) {
+  constructor(public value: Expr, public span: Span) {
     super();
+  }
+}
+
+export class UseStatement extends Statement {
+  constructor(public module: Id, public imports: Id[], public span: Span) {
+    super();
+  }
+}
+
+export class Comment extends Statement {
+  constructor(public span: Span) {
+    super();
+  }
+}
+
+export class InlineComment extends Comment {
+  constructor(public text: string, public span: Span) {
+    super(span);
+  }
+}
+
+export class DocComment extends Comment {
+  constructor(
+    public comments: Array<TextInDocComment | CodeInDocComment>,
+    public span: Span
+  ) {
+    super(span);
+  }
+}
+
+export class TextInDocComment extends Comment {
+  constructor(public texts: string[], public span: Span) {
+    super(span);
+  }
+}
+
+export class CodeInDocComment extends Comment {
+  constructor(
+    public lang: Option<Id>,
+    public statements: Statement[],
+    public span: Span
+  ) {
+    super(span);
   }
 }
