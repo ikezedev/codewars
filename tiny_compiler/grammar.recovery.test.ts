@@ -16,6 +16,6 @@ Deno.test('assignment', () => {
     let
     `;
   const source = Source.fromString(input);
-  const parsed = oneOrMore(assignRec()).parse(source).value;
+  const parsed = oneOrMore(assignRec()).parse(source).context.getErrors();
   console.debug({ parsed });
 });

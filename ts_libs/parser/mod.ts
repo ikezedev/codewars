@@ -2,7 +2,6 @@ import { Map, Pair } from './helpers.ts';
 import { inOrder, oneOf, opt, recoverable } from './combinators.ts';
 import { Either, Left, Right } from '../adt/common.ts';
 import { not, trimStart } from 'lib/parser/primitive.ts';
-import { assertThrows } from 'https://deno.land/std@0.206.0/assert/assert_throws.ts';
 
 export class PError {
   constructor(public span: Span, public message?: string) {}
@@ -10,30 +9,53 @@ export class PError {
     return new PError(span, message);
   }
 }
+export class ParsingContext {
+  constructor(private errors: PError[] = []) {}
+  addError(err: PError) {
+    this.errors.push(err);
+  }
+
+  getErrors(): PError[] {
+    const group = Object.groupBy(
+      this.errors,
+      (e) => `${e.span.start}-${e.span.end}`
+    );
+    return Object.values(group).map((e) => e[0]);
+  }
+}
+
 export class Source {
   constructor(
     public src: string,
     public current: number,
-    public error: PError[] = []
+    public context: ParsingContext = new ParsingContext()
   ) {}
 
-  toResult<T>(value: T, increment: number): Result<T> {
+  toResult<T>(value: T, increment: number): Result<T>;
+  toResult<T>(value: T, start: number, end: number): Result<T>;
+  toResult<T>(value: T, startOrIncrement: number, end?: number): Result<T> {
+    const hasEnd = end !== undefined;
     return new Result(
       value,
       this.src,
-      Span.new(this.current, this.current + increment)
+      Span.new(
+        hasEnd ? startOrIncrement : this.current,
+        hasEnd ? end : this.current + startOrIncrement
+      ),
+      this.context
     );
   }
 
   addError(err: PError) {
-    this.error.push(err);
+    this.context.addError(err);
   }
 
   toSuccess<T>(value: T, increment: number): Result<Either<T, never>> {
     return new Result(
       Left(value),
       this.src,
-      Span.new(this.current, this.current + increment)
+      Span.new(this.current, this.current + increment),
+      this.context
     );
   }
 
@@ -41,7 +63,8 @@ export class Source {
     return new Result(
       Right(ParserError(value, Span.new(this.current, this.current))),
       this.src,
-      Span.new(this.current, this.current)
+      Span.new(this.current, this.current),
+      this.context
     );
   }
 
@@ -59,11 +82,21 @@ export class Span {
 }
 
 export class Result<T> extends Source implements Map<T> {
-  constructor(public value: T, public src: string, public span: Span) {
-    super(src, span.end);
+  constructor(
+    public value: T,
+    public src: string,
+    public span: Span,
+    public context: ParsingContext
+  ) {
+    super(src, span.end, context);
   }
   map<V>(fn: (value: T, span: Span) => V): Result<V> {
-    return new Result(fn(this.value, this.span), this.src, this.span);
+    return new Result(
+      fn(this.value, this.span),
+      this.src,
+      this.span,
+      this.context
+    );
   }
   mapLeft<V, L, R>(
     this: Result<Either<L, R>>,
@@ -72,14 +105,15 @@ export class Result<T> extends Source implements Map<T> {
     return new Result(
       this.value.mapLeft((l) => fn(l, this.span)),
       this.src,
-      this.span
+      this.span,
+      this.context
     );
   }
   transpose<L, R>(this: Result<Either<L, R>>): Either<Result<L>, R> {
-    const { src, span } = this;
+    const { src, span, context } = this;
     return this.value.match({
       Left(val) {
-        return Left(new Result(val, src, span));
+        return Left(new Result(val, src, span, context));
       },
       Right(val) {
         return Right(val);
@@ -98,12 +132,19 @@ export class Result<T> extends Source implements Map<T> {
     );
 
     return result.value.flattenLeft().match({
-      Right: (val) => new Result(Right<R, Pair<L1, L2>>(val), src, result.span),
+      Right: (val) =>
+        new Result(
+          Right<R, Pair<L1, L2>>(val),
+          src,
+          result.span,
+          result.context
+        ),
       Left(res) {
         return new Result(
           Left<Pair<L1, L2>, R>(res.value),
           src,
-          Span.new(result.span.start, res.span.end)
+          Span.new(result.span.start, res.span.end),
+          res.context
         );
       },
     });
@@ -145,12 +186,12 @@ export class Parser<T> implements Map<T> {
     });
   }
 
-  recoverAt<V>(continueAt: AllParser<V>) {
-    return recoverable(this, continueAt);
+  recoverAt<V>(continueAt: AllParser<V>, message: string) {
+    return recoverable(this, continueAt, message);
   }
 
-  recover() {
-    return recoverable(this, not(this));
+  recover(message: string) {
+    return recoverable(this, not(this), message);
   }
 
   trimStart() {

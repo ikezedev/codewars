@@ -92,27 +92,25 @@ export function assignRec() {
     .and(
       id
         .trimStart()
-        .recover()
-        .and(lit`=`.trimStart().recover())
-        .and(expression().recoverAt(continueat))
-        .recoverAt(continueat)
+        .recover('expected a variable name after `let`')
+        .and(lit`=`.trimStart().recover('expected `=` after variable name '))
+        .and(
+          expression().recoverAt(continueat, 'expected an expression after `=`')
+        )
     )
 
     .discardOpt(lit`;`)
     .map(
-      ({ first: key, second }, span) =>
-        new RecAssignment(
-          key,
-          second
-            .ok()
-            .map((v) => v.first.first.ok())
-            .flatten(),
-          second
-            .ok()
-            .map((v) => v.second.ok())
-            .flatten(),
-          span
-        )
+      (
+        {
+          first: key,
+          second: {
+            first: { first: id },
+            second: expr,
+          },
+        },
+        span
+      ) => new RecAssignment(key, id.ok(), expr.ok(), span)
     );
 }
 

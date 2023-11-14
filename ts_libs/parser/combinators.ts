@@ -55,7 +55,7 @@ export function oneOrMore<T>(p: AllParser<T>): Parser<T[]> {
     if (res.length > 0) {
       const value = Either.collectLeft(res.map((r) => r.value));
       const [{ start }, { end }] = [res[0].span, res.at(-1)!.span];
-      return new Result(value, input.src, Span.new(start, end));
+      return input.toResult(value, start, end);
     } else {
       return input.toFailure(
         'expected to match one or more variant but got none'
@@ -164,7 +164,7 @@ export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
       const value = Either.collectLeft(res.map((r) => r.value));
       const { start } = res[0].span;
       const { end } = res.at(-1)!.span;
-      return new Result(value, input.src, Span.new(start, end));
+      return input.toResult(value, start, end);
     }
 
     if (stop.value.isLeft() && next.value.isLeft()) {
@@ -177,7 +177,8 @@ export function takeUntil<T>(parser: AllParser<T>, stopAt: AllParser<unknown>) {
 
 export function recoverable<T>(
   main: AllParser<T>,
-  continueAt: AllParser<unknown>
+  continueAt: AllParser<unknown>,
+  message: string
 ): Parser<Either<T, string>> {
   return makeParser((input) => {
     return oneOf(
@@ -186,7 +187,7 @@ export function recoverable<T>(
     )
       .map((val, span) =>
         val.mapRight((r) => {
-          input.addError(PError.new(span, r));
+          input.addError(PError.new(span, message));
           return r;
         })
       )
