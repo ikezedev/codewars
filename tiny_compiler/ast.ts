@@ -1,5 +1,5 @@
-import { Span } from 'lib/parser/mod.ts';
-import { None, Option } from 'lib/adt';
+import { Span } from '@ikezedev/parser';
+import { None, Option } from '@ikezedev/parser';
 
 export abstract class Expr {
   abstract evaluate(): unknown;

@@ -18,7 +18,7 @@ import {
   takeUntil,
   zeroOrMore,
 } from './combinators.ts';
-import { Some } from 'lib/adt';
+import { Some } from '../adt/common.ts';
 
 Deno.test('inOrder', () => {
   const { value, span } = inOrder(lit`123`, lit`456`).parse(

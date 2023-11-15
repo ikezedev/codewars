@@ -1,4 +1,4 @@
-import { Either } from 'lib/adt';
+import { Either } from '../adt/common';
 import {
   inOrder,
   oneOf,
@@ -6,8 +6,8 @@ import {
   opt,
   surrounded,
   zeroOrMore,
-} from './combinators.ts';
-import { AllParser, Parser, Result, makeParser } from './mod.ts';
+} from './combinators';
+import { AllParser, Parser, Result, makeParser } from './mod';
 
 export function regex(expr: RegExp) {
   return makeParser((input) => {

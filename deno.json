@@ -1,6 +1,0 @@
-{
-  "imports": {
-    "lib/parser/": "./ts_libs/parser/",
-    "lib/adt": "./ts_libs/adt/common.ts"
-  }
-}

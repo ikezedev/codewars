@@ -8,7 +8,7 @@ import {
   regex,
   trimStart,
   ws,
-} from 'lib/parser/primitive.ts';
+} from '@ikezedev/parser';
 import {
   inOrder,
   leftAssociative,
@@ -19,7 +19,7 @@ import {
   surrounded,
   takeUntil,
   zeroOrMore,
-} from 'lib/parser/combinators.ts';
+} from '@ikezedev/parser';
 import {
   Assignment,
   Divide,
@@ -43,10 +43,9 @@ import {
   Keyword,
   ReturnRec,
   FnRec,
-} from './ast.ts';
-import { Parser } from 'lib/parser/mod.ts';
-import { Option } from 'lib/adt';
-import { Some } from 'lib/adt';
+} from './ast';
+import { Parser } from '@ikezedev/parser';
+import { Option, Some } from '@ikezedev/parser';
 
 const keywords = oneOf(lit`let`, lit`return`, lit`fn`, lit`use`, lit`pub`);
 const id = not(keywords)

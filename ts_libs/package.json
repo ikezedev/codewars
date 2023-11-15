@@ -1,0 +1,17 @@
+{
+  "name": "@ikezedev/parser",
+  "description": "Parser combinator library",
+  "version": "0.0.1",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Ikechukwu Eze",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "20.9.0",
+    "typescript": "5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc"
+  }
+}

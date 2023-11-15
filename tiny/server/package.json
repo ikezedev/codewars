@@ -1,5 +1,5 @@
 {
-  "name": "tiny-lsp-server",
+  "name": "@tiny/lsp-server",
   "description": "Implementation of tiny language server in node.",
   "version": "0.0.1",
   "author": "Ikechukwu Eze",
@@ -8,6 +8,7 @@
     "node": "*"
   },
   "dependencies": {
+    "@tiny/compiler": "^0.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11"
   },

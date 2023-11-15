@@ -1,7 +1,7 @@
-import { Map, Pair } from './helpers.ts';
-import { inOrder, oneOf, opt, recoverable } from './combinators.ts';
-import { Either, Left, Right } from '../adt/common.ts';
-import { not, trimStart } from 'lib/parser/primitive.ts';
+import { Map, Pair } from './helpers';
+import { inOrder, oneOf, opt, recoverable } from './combinators';
+import { Either, Left, Right } from '../adt/common';
+import { not, trimStart } from '../parser/primitive';
 
 export class PError {
   constructor(public span: Span, public message?: string) {}
@@ -16,10 +16,15 @@ export class ParsingContext {
   }
 
   getErrors(): PError[] {
-    const group = Object.groupBy(
-      this.errors,
-      (e) => `${e.span.start}-${e.span.end}`
-    );
+    const group = this.errors.reduce((acc, a) => {
+      const key = `${a.span.start}-${a.span.end}`;
+      if (!acc[key]) {
+        acc[key] = [a];
+      } else {
+        acc[key].push(a);
+      }
+      return acc;
+    }, {} as Record<string, PError[]>);
     return Object.values(group).map((e) => e[0]);
   }
 }

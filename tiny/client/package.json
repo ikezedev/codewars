@@ -1,5 +1,5 @@
 {
-  "name": "tiny-lsp-client",
+  "name": "@tiny/lsp-client",
   "description": "Tiny language server frontend.",
   "version": "0.0.1",
   "author": "Ikechukwu Eze",

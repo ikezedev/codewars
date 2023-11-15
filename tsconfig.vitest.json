@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["es2022", "DOM"],
+    "module": "commonjs",
+    "moduleResolution": "Node",
+    "sourceMap": true,
+    "strict": true,
+    "rootDir": "./",
+    "types": ["vitest/globals", "node"],
+    "composite": true
+  },
+  "include": ["**/*.test.ts"],
+  "exclude": ["node_modules"]
+}

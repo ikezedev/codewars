@@ -1,0 +1,21 @@
+{
+  "name": "@tiny/compiler",
+  "description": "Compiler for Tiny lang",
+  "version": "0.0.1",
+  "module": "dist/compiler.js",
+  "types": "dist/compiler.d.ts",
+  "author": "Ikechukwu Eze",
+  "license": "MIT",
+  "dependencies": {
+    "@ikezedev/parser": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.9.0",
+    "typescript": "5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "test": "vitest"
+  }
+}

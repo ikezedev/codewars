@@ -1,4 +1,5 @@
-import { FnExpr } from './ast.ts';
+import { FnExpr } from './ast';
+export { tinyGrammar } from './grammar';
 
 export class Compiler {
   program?: FnExpr;

@@ -1,0 +1,23 @@
+{
+  "name": "codewars-workspace",
+  "description": "My codewars workspace",
+  "workspaces": [
+    "ts_libs",
+    "tiny/server",
+    "tiny_compiler",
+    "tiny/client"
+  ],
+  "private": true,
+  "version": "0.0.1",
+  "author": "Ikechukwu Eze",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "20.9.0",
+    "typescript": "5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "scripts": {
+    "preinstall": "npm run build",
+    "build": "npm run -w ts_libs build && npm run -w tiny_compiler build"
+  }
+}

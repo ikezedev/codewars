@@ -1,5 +1,5 @@
-import { Either, Left, None, Option, Right, Some } from '../adt/common.ts';
-import { Pair, Triple } from './helpers.ts';
+import { Either, Left, None, Option, Right, Some } from '../adt/common';
+import { Pair, Triple } from './helpers';
 import {
   Parser,
   makeParser,
@@ -9,8 +9,8 @@ import {
   getParser,
   Span,
   PError,
-} from './mod.ts';
-import { any } from './primitive.ts';
+} from './mod';
+import { any } from './primitive';
 
 export function inOrder<T, U>(
   p1: AllParser<T>,

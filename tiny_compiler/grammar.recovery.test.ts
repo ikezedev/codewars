@@ -1,9 +1,12 @@
-import { assertEquals } from 'https://deno.land/std@0.206.0/assert/mod.ts';
-import { assignRec, fnRec, retRec } from './grammar.ts';
-import { PError, Source, Span } from 'lib/parser/mod.ts';
-import { oneOrMore } from 'lib/parser/combinators.ts';
+import { assignRec, fnRec, retRec } from './grammar';
+import { PError, Source, Span } from '@ikezedev/parser';
+import { oneOrMore } from '@ikezedev/parser';
 
-Deno.test('assignment', () => {
+function assertEquals<T>(a: T, b: T) {
+  return expect(a).toEqual(b);
+}
+
+test('assignment', () => {
   const input = `
     let Global = ;
     let age 45;
@@ -24,7 +27,7 @@ Deno.test('assignment', () => {
   assertEquals(span, Span.new(0, 74));
 });
 
-Deno.test('return', () => {
+test('return', () => {
   const input = `
     return ;
     return 45;
@@ -45,7 +48,7 @@ Deno.test('return', () => {
   assertEquals(span, Span.new(0, 66));
 });
 
-Deno.test('functions', () => {
+test('functions', () => {
   const input = `
   pub fn test1 a b => {
     let var = a + b;
