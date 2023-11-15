@@ -15,7 +15,6 @@ import {
   oneOf,
   oneOrMore,
   opt,
-  recoverable,
   separated,
   surrounded,
   takeUntil,
@@ -42,10 +41,17 @@ import {
   DocComment,
   RecAssignment,
   Keyword,
+  ReturnRec,
+  FnRec,
 } from './ast.ts';
 import { Parser } from 'lib/parser/mod.ts';
+import { Option } from 'lib/adt';
+import { Some } from 'lib/adt';
 
-const id = regex(/^[a-zA-Z_]\w*/).map((a, sp) => new Id(a, sp));
+const keywords = oneOf(lit`let`, lit`return`, lit`fn`, lit`use`, lit`pub`);
+const id = not(keywords)
+  .and(regex(/^[a-zA-Z_]\w*/))
+  .map(({ second: name }, sp) => new Id(name, sp));
 const argList = separated(id, oneOrMore(lit` `))
   .map(({ first, second }) =>
     [first, ...second.map((p) => p.second)].map((e, i) => e.toArg(i, e.span))
@@ -121,12 +127,24 @@ function ret() {
     .chain(trimStart);
 }
 
-function functionBody() {
-  return oneOrMore<Statement>(oneOf(assign, ret).discardOpt(inlineComment));
+export function retRec() {
+  return lit`return`
+    .trimStart()
+    .map((r, s) => new Keyword(r, s))
+    .and(oneOrMore(lit` `).recover('expected a white space after `return`'))
+    .and(
+      expression().recoverAt(lit`\n`, 'expected an expression after `return`')
+    )
+    .discardOpt(lit`;`)
+    .map(
+      ({ first: { first: key }, second }, span) =>
+        new ReturnRec(key, second.ok(), span)
+    )
+    .chain(trimStart);
 }
 
-export function testTerm() {
-  return surrounded(eatWs(lit`{`), functionBody(), eatWs(lit`}`));
+function functionBody() {
+  return oneOrMore<Statement>(oneOf(assign, ret).discardOpt(inlineComment));
 }
 
 export function fn(): Parser<Fn> {
@@ -153,6 +171,65 @@ export function fn(): Parser<Fn> {
         },
         sp
       ) => new Fn(name, args, statements, vis.isSome(), sp, doc)
+    );
+}
+
+export function fnRec(): Parser<FnRec> {
+  return opt(docComment())
+    .and(
+      inOrder(
+        opt(lit`pub`.and(lit` `).trimStart()),
+        lit`fn`.and(lit` `).trimStart(),
+        id.recoverAt(lit`=`.or(lit`\n`).or(lit`{`), 'expected function name')
+      ).chain(trimStart)
+    )
+    .and(
+      inOrder(
+        argList.chain(trimStart),
+        lit`=>`
+          .trimStart()
+          .recoverAt(
+            lit`{`.or(lit`\n`),
+            'expected `=>` after function name and arguments'
+          )
+      )
+    )
+    .and(
+      oneOf<Option<Statement[]>>(
+        exprStatement.map((r) => Some([r])),
+        surrounded(
+          eatWs(lit`{`).recover(
+            'expected an expression or an opening brace `{`'
+          ),
+          functionBody()
+            .recover('expected function body')
+            .map((d) => d.ok()),
+          trimStart(lit`}`).recover('expected a closing brace `}`')
+        )
+      )
+    )
+    .map(
+      (
+        {
+          first: {
+            first: {
+              first: doc,
+              second: { first: vis, third: name },
+            },
+            second: { first: args },
+          },
+          second: statements,
+        },
+        sp
+      ) =>
+        new FnRec(
+          name.ok(),
+          args,
+          statements.unwrapOrDefault([]),
+          vis.isSome(),
+          sp,
+          doc
+        )
     );
 }
 

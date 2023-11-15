@@ -126,10 +126,10 @@ export function rightAssociative<T, S>(
   );
 }
 
-export function surrounded<T, S>(
+export function surrounded<T, S, S2 = S>(
   opening: AllParser<S>,
   parser: AllParser<T>,
-  closing: AllParser<S>
+  closing: AllParser<S2>
 ): Parser<T> {
   return inOrder(opening, parser, closing).map(({ second }) => second);
 }

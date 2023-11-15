@@ -323,14 +323,20 @@ export class Fn extends Statement {
     super();
   }
 
-  // idsToArgs() {
-  //   this.body = this.body.prepare(Arg.makeMap(this.args));
-  //   return this;
-  // }
+  evaluate() {}
+}
 
-  // toJSON() {
-  //   return this.body.toJSON();
-  // }
+export class FnRec extends Statement {
+  constructor(
+    public name: Option<Id>,
+    public args: Arg[],
+    public body: Statement[],
+    public isPublic: boolean,
+    public span: Span,
+    public documentation: Option<DocComment> = None
+  ) {
+    super();
+  }
 
   evaluate() {}
 }
@@ -372,6 +378,16 @@ export class ExprStatement extends Statement {
 
 export class Return extends Statement {
   constructor(public value: Expr, public span: Span) {
+    super();
+  }
+}
+
+export class ReturnRec extends Statement {
+  constructor(
+    public keyword: Keyword,
+    public value: Option<Expr>,
+    public span: Span
+  ) {
     super();
   }
 }
