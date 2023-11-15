@@ -1,4 +1,4 @@
-import { assignRec, fnRec, retRec } from './grammar';
+import { assignRec, fnRec, retRec, tinyGrammar } from './grammar';
 import { PError, Source, Span } from '@ikezedev/parser';
 import { oneOrMore } from '@ikezedev/parser';
 
@@ -96,4 +96,43 @@ test('functions', () => {
   ]);
   assertEquals(value.unwrapLeft().length, 8);
   assertEquals(span, Span.new(0, 515));
+});
+
+test('big', () => {
+  const input = `use utils::sub;
+  use utils::{mult, div};
+  
+  let global = 100;
+  
+  fn avg a b => div(sub(a, b), 2);
+  
+  fn add first second => first + second;
+  
+  fn compute x y z => ( 2 * 3 * x + 5 * y - 3 * z ) / (1 + 3 + 2 * 2);
+  
+  /// Test function
+  /// Takes a and b
+  /// Returns 15 + 4
+  /// \`\`\`
+  /// let test = mult(2, 1);
+  /// assert_eq(test, 2);
+  /// \`\`\`
+  /// \`\`\`ty
+  /// let test = sub(2, 1); // simple comment
+  /// assert_eq(test, 1);
+  /// \`\`\`
+  pub fn test a b => {
+      let var = a + b;
+      return add(var * 3, 4); // line comment
+  }
+  
+  fn test a b => {
+      let var = 2 + 3
+      add(var * 3, 4)
+  }`;
+
+  const { context, value, span } = tinyGrammar.parse(Source.fromString(input));
+
+  console.debug({ value });
+  console.debug({ context });
 });

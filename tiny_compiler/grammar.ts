@@ -75,9 +75,10 @@ function expression(): Parser<Expr> {
       if (op === '+') return new Plus(first, third, span);
       return new Minus(first, third, span);
     }
-  ).chain(trimStart);
+  ).trimStart();
 }
 
+// todo: remove
 function assign() {
   return inOrder(lit`let`, ws, id)
     .and(inOrder(os, lit`=`, expression))
@@ -86,7 +87,7 @@ function assign() {
         new Assignment(first.third, second.third, span)
     )
     .discardOpt(lit`;`)
-    .chain(trimStart);
+    .trimStart();
 }
 
 export function assignRec() {
@@ -119,11 +120,12 @@ export function assignRec() {
     );
 }
 
+// todo: remove
 function ret() {
   return inOrder(lit`return`, ws, expression)
     .discardOpt(lit`;`)
     .map(({ third }, span) => new Return(third, span))
-    .chain(trimStart);
+    .trimStart();
 }
 
 export function retRec() {
@@ -139,16 +141,19 @@ export function retRec() {
       ({ first: { first: key }, second }, span) =>
         new ReturnRec(key, second.ok(), span)
     )
-    .chain(trimStart);
+    .trimStart();
 }
 
 function functionBody() {
-  return oneOrMore<Statement>(oneOf(assign, ret).discardOpt(inlineComment));
+  return oneOrMore<Statement>(
+    oneOf(assignRec, retRec).discardOpt(inlineComment)
+  );
 }
 
-export function fn(): Parser<Fn> {
+// todo: remove
+function fn(): Parser<Fn> {
   return opt(docComment())
-    .and(inOrder(opt(lit`pub`.and(ws)), lit`fn`.and(ws), id).chain(trimStart))
+    .and(inOrder(opt(lit`pub`.and(ws)), lit`fn`.and(ws), id).trimStart())
     .and(inOrder(argList.chain(eatWs), lit`=>`))
     .and(
       oneOf<Statement[]>(
@@ -180,11 +185,11 @@ export function fnRec(): Parser<FnRec> {
         opt(lit`pub`.and(lit` `).trimStart()),
         lit`fn`.and(lit` `).trimStart(),
         id.recoverAt(lit`=`.or(lit`\n`).or(lit`{`), 'expected function name')
-      ).chain(trimStart)
+      ).trimStart()
     )
     .and(
       inOrder(
-        argList.chain(trimStart),
+        argList.trimStart(),
         lit`=>`
           .trimStart()
           .recoverAt(
@@ -249,7 +254,7 @@ function useStatement() {
       ({ second, third }, span) => new UseStatement(second.first, third, span)
     )
     .discardOpt(lit`;`)
-    .chain(trimStart);
+    .trimStart();
 }
 
 function fnCall() {
@@ -284,7 +289,7 @@ function term(): Parser<Expr> {
 function inlineComment() {
   return inOrder(lit`//`.and(not(lit`/`)), os, takeUntil(any, lit`\n`))
     .map(({ third }, sp) => new InlineComment(third.join(''), sp))
-    .chain(trimStart);
+    .trimStart();
 }
 
 const exprStatement = expression()
@@ -292,14 +297,14 @@ const exprStatement = expression()
   .discardOpt(lit`;`);
 export const statement = oneOf<Statement>(
   useStatement,
-  fn,
-  assign().map((a) => {
+  fnRec,
+  assignRec().map((a) => {
     a.isGlobal = true;
     return a;
   }),
   exprStatement
 )
-  .chain(trimStart)
+  .trimStart()
   .discardOpt(inlineComment);
 export const tinyGrammar = oneOrMore(statement);
 
@@ -307,7 +312,7 @@ export function docComment() {
   const originSlashes = lit`///`
     .and(os)
     .and(not(lit('```')))
-    .chain(trimStart);
+    .trimStart();
   const slashes = inOrder(lit`\n`, os, lit`///`.and(os));
 
   const texts = takeUntil(
@@ -320,7 +325,7 @@ export function docComment() {
     )
   )
     .map((res, span) => new TextInDocComment(res, span))
-    .chain(trimStart);
+    .trimStart();
 
   return oneOrMore(
     oneOf<CodeInDocComment | TextInDocComment>(codeInDocComments, texts)
@@ -328,7 +333,7 @@ export function docComment() {
 }
 
 function codeInDocComments() {
-  const originSlashes = lit`///`.and(os).chain(trimStart);
+  const originSlashes = lit`///`.and(os).trimStart();
   const osButLine = opt(takeUntil(ws, lit`\n`));
   const slashes = osButLine.and(inOrder(lit`\n`, os, lit`///`.and(os)));
   const start = inOrder(originSlashes, lit('```').and(opt(id)), osButLine);
