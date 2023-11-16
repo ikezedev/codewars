@@ -1,4 +1,4 @@
-import { Either } from '../adt/common';
+import { Either } from '../data_structures/common';
 import {
   inOrder,
   oneOf,
@@ -94,8 +94,13 @@ export function os() {
 }
 
 export const eatWs = <T>(p: AllParser<T>) => surrounded(os, p, os);
+
 export const trimStart = <T>(p: AllParser<T>) =>
   inOrder(os, p).map((r) => r.second);
+
+export const trimStartWith = <T>(p: AllParser<T>, more: AllParser<unknown>) =>
+  inOrder(zeroOrMore(oneOf(more, os)), p).map((r) => r.second);
+
 export function letter() {
   return regex(/[a-zA-Z]/);
 }

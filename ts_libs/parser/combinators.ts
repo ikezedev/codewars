@@ -1,4 +1,11 @@
-import { Either, Left, None, Option, Right, Some } from '../adt/common';
+import {
+  Either,
+  Left,
+  None,
+  Option,
+  Right,
+  Some,
+} from '../data_structures/common';
 import { Pair, Triple } from './helpers';
 import {
   Parser,

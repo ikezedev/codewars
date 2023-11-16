@@ -15,7 +15,8 @@
     "vitest": "^0.34.6"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc",
-    "test": "vitest"
+    "build": "tsc",
+    "test": "vitest",
+    "preinstall": "tsc"
   }
 }

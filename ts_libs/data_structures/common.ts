@@ -1,4 +1,4 @@
-import { Pair } from '../parser/helpers.ts';
+import { Pair } from './helpers';
 
 abstract class Option<T> {
   abstract map<U>(fn: (val: T) => U): Option<U>;

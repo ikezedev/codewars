@@ -1,6 +1,7 @@
 import { assignRec, fnRec, retRec, tinyGrammar } from './grammar';
 import { PError, Source, Span } from '@ikezedev/parser';
 import { oneOrMore } from '@ikezedev/parser';
+import { FnRec } from './ast';
 
 function assertEquals<T>(a: T, b: T) {
   return expect(a).toEqual(b);
@@ -107,8 +108,9 @@ test('big', () => {
   fn avg a b => div(sub(a, b), 2);
   
   fn add first second => first + second;
-  
+  // what happens now
   fn compute x y z => ( 2 * 3 * x + 5 * y - 3 * z ) / (1 + 3 + 2 * 2);
+  // and happens now 1
   
   /// Test function
   /// Takes a and b
@@ -133,6 +135,8 @@ test('big', () => {
 
   const { context, value, span } = tinyGrammar.parse(Source.fromString(input));
 
-  console.debug({ value });
-  console.debug({ context });
+  for (const e of value.unwrapLeft()) {
+    console.debug(e);
+  }
+  console.debug(context.getErrors());
 });

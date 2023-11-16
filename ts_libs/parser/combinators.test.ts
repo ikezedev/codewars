@@ -1,10 +1,5 @@
-import {
-  assert,
-  assertEquals,
-} from 'https://deno.land/std@0.192.0/testing/asserts.ts';
-
-import { any, lit, number } from './primitive.ts';
-import { Source, Span } from './mod.ts';
+import { any, lit, number } from './primitive';
+import { Source, Span } from './mod';
 import {
   inOrder,
   leftAssociative,
@@ -17,10 +12,14 @@ import {
   surrounded,
   takeUntil,
   zeroOrMore,
-} from './combinators.ts';
-import { Some } from '../adt/common.ts';
+} from './combinators';
+import { Some } from '../data_structures/common';
 
-Deno.test('inOrder', () => {
+function assertEquals<T>(a: T, b: T) {
+  return expect(a).toEqual(b);
+}
+
+test('inOrder', () => {
   const { value, span } = inOrder(lit`123`, lit`456`).parse(
     Source.fromString('123456')
   );
@@ -49,7 +48,7 @@ Deno.test('inOrder', () => {
   assertEquals(spError.end, 0);
 });
 
-Deno.test('oneOf', () => {
+test('oneOf', () => {
   const parsed = oneOf(lit`123`, lit`456`).parse(Source.fromString('456'));
   const value = parsed.value.unwrapLeft();
   assertEquals(value, '456');
@@ -65,7 +64,7 @@ Deno.test('oneOf', () => {
   );
 });
 
-Deno.test('oneOrMore', () => {
+test('oneOrMore', () => {
   const { value, span } = oneOrMore(lit`123`).parse(
     Source.fromString('123123456')
   );
@@ -85,7 +84,7 @@ Deno.test('oneOrMore', () => {
   assertEquals(vl1.unwrapLeft(), [',', ';']);
 });
 
-Deno.test('zeroOrMore', () => {
+test('zeroOrMore', () => {
   const { value, span } = zeroOrMore(lit`123`).parse(
     Source.fromString('123123456')
   );
@@ -99,7 +98,7 @@ Deno.test('zeroOrMore', () => {
   );
 });
 
-Deno.test('separated', () => {
+test('separated', () => {
   const { value: v, span } = separated(number, oneOf(lit`,`, lit`;`)).parse(
     Source.fromString('123,123;456')
   );
@@ -112,7 +111,7 @@ Deno.test('separated', () => {
   );
 });
 
-Deno.test('surrounded', () => {
+test('surrounded', () => {
   const { value, span } = surrounded(lit`(`, number, lit`)`).parse(
     Source.fromString('(123)')
   );
@@ -120,7 +119,7 @@ Deno.test('surrounded', () => {
   assertEquals(span, Span.new(0, 5));
 });
 
-Deno.test('opt', () => {
+test('opt', () => {
   const { value, span } = opt(number).parse(Source.fromString('(123)'));
   assert(value.unwrapLeft().isNone());
   assertEquals(span, Span.new(0, 0));
@@ -133,7 +132,7 @@ Deno.test('opt', () => {
   assertEquals(span1, Span.new(0, 3));
 });
 
-Deno.test('leftAssociative', () => {
+test('leftAssociative', () => {
   const left = leftAssociative(
     number,
     oneOf(lit`-`, lit`+`),
@@ -153,7 +152,7 @@ Deno.test('leftAssociative', () => {
   assertEquals(span, Span.new(0, 10));
 });
 
-Deno.test('rightAssociative', () => {
+test('rightAssociative', () => {
   const right = rightAssociative(
     number,
     oneOf(lit`-`, lit`+`),
@@ -173,7 +172,7 @@ Deno.test('rightAssociative', () => {
   assertEquals(res, 0);
 });
 
-Deno.test('takeUntil', () => {
+test('takeUntil', () => {
   const { current, value, span } = takeUntil(any, lit`{`).parse(
     Source.fromString('123{}')
   );
@@ -190,10 +189,10 @@ const makeExpr = (a: Expr, b: Expr, op: Op) => ({
   op,
 });
 
-Deno.test('recoverable leftAssociative', () => {
+test('recoverable leftAssociative', () => {
   const main = leftAssociative<Expr, Op>(
     number,
-    recoverable(oneOf(lit`-`, lit`+`), number).map((eith) =>
+    recoverable(oneOf(lit`-`, lit`+`), number, '').map((eith) =>
       eith.match({
         Right: (val) => ({ invalid: val } as Op),
         Left: (val) => ({ valid: val }),
@@ -206,10 +205,10 @@ Deno.test('recoverable leftAssociative', () => {
   assert(main.parse(Source.fromString('123/100*23+48/34')).value.isLeft());
 });
 
-Deno.test('recoverable rightAssociative', () => {
+test('recoverable rightAssociative', () => {
   const main = rightAssociative<Expr, Op>(
     number,
-    recoverable(oneOf(lit`-`, lit`+`), number).map((eith) =>
+    recoverable(oneOf(lit`-`, lit`+`), number, '').map((eith) =>
       eith.match({
         Right: (val) => ({ invalid: val } as Op),
         Left: (val) => ({ valid: val }),

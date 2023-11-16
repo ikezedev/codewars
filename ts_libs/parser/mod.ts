@@ -1,7 +1,7 @@
 import { Map, Pair } from './helpers';
 import { inOrder, oneOf, opt, recoverable } from './combinators';
-import { Either, Left, Right } from '../adt/common';
-import { not, trimStart } from '../parser/primitive';
+import { Either, Left, Right } from '../data_structures/common';
+import { not, trimStart, trimStartWith } from '../parser/primitive';
 
 export class PError {
   constructor(public span: Span, public message?: string) {}
@@ -83,6 +83,18 @@ export class Span {
 
   static new(start: number, end: number) {
     return new Span(start, end);
+  }
+
+  getStartLine(src: string) {
+    return src.slice(0, this.start).split('\n').length - 1;
+  }
+
+  getEndLine(src: string) {
+    return src.slice(0, this.end).split('\n').length - 1;
+  }
+
+  extractSrc(src: String) {
+    return src.slice(this.start, this.end);
   }
 }
 
@@ -201,6 +213,10 @@ export class Parser<T> implements Map<T> {
 
   trimStart() {
     return this.chain(trimStart);
+  }
+
+  trimStartWith(more: AllParser<unknown>) {
+    return trimStartWith(this, more);
   }
 
   mapRes<V>(

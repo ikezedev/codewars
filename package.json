@@ -2,7 +2,8 @@
   "name": "codewars-workspace",
   "description": "My codewars workspace",
   "workspaces": [
-    "ts_libs",
+    "ts_libs/parser",
+    "ts_libs/data_structures",
     "tiny/server",
     "tiny_compiler",
     "tiny/client"
@@ -17,7 +18,6 @@
     "vitest": "^0.34.6"
   },
   "scripts": {
-    "preinstall": "npm run build",
     "build": "npm run -w ts_libs build && npm run -w tiny_compiler build"
   }
 }

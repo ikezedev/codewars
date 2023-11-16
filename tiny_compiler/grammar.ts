@@ -145,8 +145,9 @@ export function retRec() {
 }
 
 function functionBody() {
-  return oneOrMore<Statement>(
-    oneOf(assignRec, retRec).discardOpt(inlineComment)
+  return oneOrMore(
+    oneOf<Statement>(assignRec, retRec, exprStatement).discardOpt(inlineComment)
+    // .trimStartWith(inlineComment)
   );
 }
 
@@ -295,6 +296,7 @@ function inlineComment() {
 const exprStatement = expression()
   .map((x, span) => new ExprStatement(x, span))
   .discardOpt(lit`;`);
+
 export const statement = oneOf<Statement>(
   useStatement,
   fnRec,
@@ -304,8 +306,9 @@ export const statement = oneOf<Statement>(
   }),
   exprStatement
 )
-  .trimStart()
+  // .trimStartWith(inlineComment)
   .discardOpt(inlineComment);
+
 export const tinyGrammar = oneOrMore(statement);
 
 export function docComment() {
@@ -362,3 +365,4 @@ function codeInDocComments() {
 // Todo: ensure inline comments can be used where applicable - 70% done
 // Todo: support  recovery
 // Todo: support error & warning reporting
+// Todo: use statement doesn't include ;

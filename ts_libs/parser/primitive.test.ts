@@ -1,12 +1,20 @@
 import {
-  assert,
-  assertEquals,
-} from 'https://deno.land/std@0.192.0/testing/asserts.ts';
+  lit,
+  number,
+  os,
+  eatWs,
+  letter,
+  any,
+  int,
+  trimStartWith,
+} from './primitive';
+import { Source } from './mod';
 
-import { lit, number, os, eatWs, letter, any, int } from './primitive.ts';
-import { Source } from './mod.ts';
+function assertEquals<T>(a: T, b: T) {
+  return expect(a).toEqual(b);
+}
 
-Deno.test('lit', () => {
+test('lit', () => {
   assertEquals(lit``.parse(Source.fromString('123')).value.unwrapLeft(), '');
   const parsed = lit`123`.parse(Source.fromString('123'));
   assertEquals(parsed.value.unwrapLeft(), '123');
@@ -25,7 +33,7 @@ Deno.test('lit', () => {
   );
 });
 
-Deno.test('whitespace', () => {
+test('whitespace', () => {
   assertEquals(os().parse(Source.fromString('123')).value.unwrapLeft(), '');
   assertEquals(
     eatWs(lit`123`)
@@ -41,7 +49,7 @@ Deno.test('whitespace', () => {
   );
 });
 
-Deno.test('letter', () => {
+test('letter', () => {
   const res = letter().parse(Source.fromString('az'));
   assertEquals(res.value.unwrapLeft(), 'a');
   assertEquals(res.span.end, 1);
@@ -49,7 +57,7 @@ Deno.test('letter', () => {
   assert(letter().parse(Source.fromString('')).value.isRight());
 });
 
-Deno.test('number', () => {
+test('number', () => {
   const res = number().parse(Source.fromString('123'));
   assertEquals(res.value.unwrapLeft(), 123);
   assertEquals(res.span.end, 3);
@@ -59,6 +67,26 @@ Deno.test('number', () => {
   assert(number().parse(Source.fromString('invalid')).value.isRight());
 });
 
-Deno.test('any', () => {
+test('any', () => {
   assert(any().parse(Source.fromString('')).value.isRight());
+});
+
+test('trimStartWith', () => {
+  const inputs = [
+    `
+    a
+    123
+    `,
+    `a
+    123`,
+    ` a123`,
+    `a123`,
+    `123`,
+  ];
+  const parser = trimStartWith(number, letter);
+
+  for (const input of inputs) {
+    const { value, span } = parser.parse(Source.fromString(input));
+    console.log({ value, span });
+  }
 });

@@ -309,7 +309,9 @@ export class FnCall extends Expr {
   }
 }
 
-export class Statement {}
+export class Statement {
+  constructor(public span: Span) {}
+}
 
 export class Fn extends Statement {
   constructor(
@@ -320,7 +322,7 @@ export class Fn extends Statement {
     public span: Span,
     public documentation: Option<DocComment> = None
   ) {
-    super();
+    super(span);
   }
 
   evaluate() {}
@@ -335,7 +337,7 @@ export class FnRec extends Statement {
     public span: Span,
     public documentation: Option<DocComment> = None
   ) {
-    super();
+    super(span);
   }
 
   evaluate() {}
@@ -348,7 +350,7 @@ export class Assignment extends Statement {
     public span: Span,
     public isGlobal = false
   ) {
-    super();
+    super(span);
   }
 }
 
@@ -366,19 +368,19 @@ export class RecAssignment extends Statement {
     public span: Span,
     public isGlobal = false
   ) {
-    super();
+    super(span);
   }
 }
 
 export class ExprStatement extends Statement {
   constructor(public expr: Expr, public span: Span) {
-    super();
+    super(span);
   }
 }
 
 export class Return extends Statement {
   constructor(public value: Expr, public span: Span) {
-    super();
+    super(span);
   }
 }
 
@@ -388,19 +390,19 @@ export class ReturnRec extends Statement {
     public value: Option<Expr>,
     public span: Span
   ) {
-    super();
+    super(span);
   }
 }
 
 export class UseStatement extends Statement {
   constructor(public module: Id, public imports: Id[], public span: Span) {
-    super();
+    super(span);
   }
 }
 
 export class Comment extends Statement {
   constructor(public span: Span) {
-    super();
+    super(span);
   }
 }
 
@@ -408,6 +410,10 @@ export class InlineComment extends Comment {
   constructor(public text: string, public span: Span) {
     super(span);
   }
+}
+
+interface IDocComment {
+  getMarkdown(src: string): string;
 }
 
 export class DocComment extends Comment {
@@ -419,18 +425,28 @@ export class DocComment extends Comment {
   }
 }
 
-export class TextInDocComment extends Comment {
+export class TextInDocComment extends Comment implements IDocComment {
   constructor(public texts: string[], public span: Span) {
     super(span);
   }
+  getMarkdown(): string {
+    return this.texts.join('\n');
+  }
 }
 
-export class CodeInDocComment extends Comment {
+export class CodeInDocComment extends Comment implements IDocComment {
   constructor(
     public lang: Option<Id>,
     public statements: Statement[],
     public span: Span
   ) {
     super(span);
+  }
+  getMarkdown(src: string): string {
+    return `
+    \`\`\`${this.lang.map((l) => l.name).unwrapOrDefault('')}
+      ${this.statements.map((s) => s.span.extractSrc(src)).join('\n')}
+    \`\`\`
+    `;
   }
 }

@@ -1,8 +1,10 @@
-import { assertEquals } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
+import { Left, None, Option, Right, Some } from './common';
 
-import { Left, None, Option, Right, Some } from './common.ts';
+function assertEquals<T>(a: T, b: T) {
+  return expect(a).toEqual(b);
+}
 
-Deno.test('Option<T> Some', () => {
+test('Option<T> Some', () => {
   const num = Some(1).unwrapOrDefault(0);
   assertEquals(num, 1);
   const hey = Some('hey')
@@ -11,7 +13,7 @@ Deno.test('Option<T> Some', () => {
   assertEquals(hey, 'hey world');
 });
 
-Deno.test('Option<T> None', () => {
+test('Option<T> None', () => {
   const none: Option<number> = None;
   const num = none.unwrapOr(() => 0);
   assertEquals(num, 0);
@@ -20,7 +22,7 @@ Deno.test('Option<T> None', () => {
   assertEquals(str, '');
 });
 
-Deno.test('Either<L, R> Left', () => {
+test('Either<L, R> Left', () => {
   const num = Left(1).unwrapLeftOrDefault(0);
   assertEquals(num, 1);
   const hey = Left('hey')
@@ -29,7 +31,7 @@ Deno.test('Either<L, R> Left', () => {
   assertEquals(hey, 'hey world');
 });
 
-Deno.test('Either<L, R> Right', () => {
+test('Either<L, R> Right', () => {
   const num = Right(1).unwrapRightOrDefault(0);
   assertEquals(num, 1);
   const hey = Right('hey')
