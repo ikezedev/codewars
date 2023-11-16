@@ -7,6 +7,7 @@ import {
   os,
   regex,
   trimStart,
+  trimStartWith,
   ws,
 } from '@ikezedev/parser';
 import {
@@ -18,7 +19,6 @@ import {
   separated,
   surrounded,
   takeUntil,
-  zeroOrMore,
 } from '@ikezedev/parser';
 import {
   Assignment,
@@ -45,7 +45,7 @@ import {
   FnRec,
 } from './ast';
 import { Parser } from '@ikezedev/parser';
-import { Option, Some } from '@ikezedev/parser';
+import { Option, Some } from '@ikezedev/ds';
 
 const keywords = oneOf(lit`let`, lit`return`, lit`fn`, lit`use`, lit`pub`);
 const id = not(keywords)
@@ -78,18 +78,6 @@ function expression(): Parser<Expr> {
   ).trimStart();
 }
 
-// todo: remove
-function assign() {
-  return inOrder(lit`let`, ws, id)
-    .and(inOrder(os, lit`=`, expression))
-    .map(
-      ({ first, second }, span) =>
-        new Assignment(first.third, second.third, span)
-    )
-    .discardOpt(lit`;`)
-    .trimStart();
-}
-
 export function assignRec() {
   const continueat = lit`\n`.or(lit`;`);
   return lit`let`
@@ -120,14 +108,6 @@ export function assignRec() {
     );
 }
 
-// todo: remove
-function ret() {
-  return inOrder(lit`return`, ws, expression)
-    .discardOpt(lit`;`)
-    .map(({ third }, span) => new Return(third, span))
-    .trimStart();
-}
-
 export function retRec() {
   return lit`return`
     .trimStart()
@@ -146,40 +126,21 @@ export function retRec() {
 
 function functionBody() {
   return oneOrMore(
-    oneOf<Statement>(assignRec, retRec, exprStatement).discardOpt(inlineComment)
-    // .trimStartWith(inlineComment)
+    oneOf<Statement>(assignRec, retRec, exprStatement)
+      .discardOpt(inlineComment)
+      .trimStartWith(inlineComment)
   );
 }
 
-// todo: remove
-function fn(): Parser<Fn> {
-  return opt(docComment())
-    .and(inOrder(opt(lit`pub`.and(ws)), lit`fn`.and(ws), id).trimStart())
-    .and(inOrder(argList.chain(eatWs), lit`=>`))
-    .and(
-      oneOf<Statement[]>(
-        exprStatement.map((r) => [r]),
-        surrounded(eatWs(lit`{`), functionBody(), trimStart(lit`}`))
-      )
-    )
-    .map(
-      (
-        {
-          first: {
-            first: {
-              first: doc,
-              second: { first: vis, third: name },
-            },
-            second: { first: args },
-          },
-          second: statements,
-        },
-        sp
-      ) => new Fn(name, args, statements, vis.isSome(), sp, doc)
-    );
+function functionBodyInDocComments() {
+  return oneOrMore(
+    oneOf<Statement>(assignRec, retRec, exprStatement)
+      .discardOpt(inlineComment)
+      .trimStartWith(oneOf<unknown>(lit`///`, inlineComment))
+  );
 }
 
-export function fnRec(): Parser<FnRec> {
+export function fnRecBase(isDoc = false): Parser<FnRec> {
   return opt(docComment())
     .and(
       inOrder(
@@ -206,10 +167,12 @@ export function fnRec(): Parser<FnRec> {
           eatWs(lit`{`).recover(
             'expected an expression or an opening brace `{`'
           ),
-          functionBody()
+          (isDoc ? functionBodyInDocComments() : functionBody())
             .recover('expected function body')
             .map((d) => d.ok()),
-          trimStart(lit`}`).recover('expected a closing brace `}`')
+          (isDoc ? trimStartWith(lit`}`, lit`///`) : trimStart(lit`}`)).recover(
+            'expected a closing brace `}`'
+          )
         )
       )
     )
@@ -238,6 +201,10 @@ export function fnRec(): Parser<FnRec> {
     );
 }
 
+export function fnRec() {
+  return fnRecBase();
+}
+
 function useStatement() {
   const manyImports = surrounded(
     lit`{`,
@@ -251,10 +218,10 @@ function useStatement() {
     id.and(lit`::`),
     id.map((e) => [e]).or(manyImports)
   )
+    .discardOpt(lit`;`)
     .map(
       ({ second, third }, span) => new UseStatement(second.first, third, span)
     )
-    .discardOpt(lit`;`)
     .trimStart();
 }
 
@@ -305,11 +272,19 @@ export const statement = oneOf<Statement>(
     return a;
   }),
   exprStatement
-)
-  // .trimStartWith(inlineComment)
-  .discardOpt(inlineComment);
+).discardOpt(inlineComment);
 
-export const tinyGrammar = oneOrMore(statement);
+const statementInDoc = oneOf<Statement>(
+  useStatement,
+  fnRecBase(true),
+  assignRec().map((a) => {
+    a.isGlobal = true;
+    return a;
+  }),
+  exprStatement
+).discardOpt(inlineComment);
+
+export const tinyGrammar = oneOrMore(statement.trimStartWith(inlineComment));
 
 export function docComment() {
   const originSlashes = lit`///`
@@ -342,7 +317,7 @@ function codeInDocComments() {
   const start = inOrder(originSlashes, lit('```').and(opt(id)), osButLine);
 
   return start
-    .and(oneOrMore(inOrder(slashes, statement, osButLine)))
+    .and(oneOrMore(inOrder(slashes, statementInDoc, osButLine)))
     .and(slashes.and(lit('```')))
     .map(
       (
@@ -362,7 +337,10 @@ function codeInDocComments() {
     );
 }
 
-// Todo: ensure inline comments can be used where applicable - 70% done
-// Todo: support  recovery
-// Todo: support error & warning reporting
 // Todo: use statement doesn't include ;
+// Todo: support multiline use statement in doc comments
+
+// Things needing recovery
+// - use statements
+// return statements
+// expressions

@@ -1,7 +1,7 @@
-import { Map, Pair } from './helpers';
+import { Map, Pair } from '@ikezedev/ds';
 import { inOrder, oneOf, opt, recoverable } from './combinators';
-import { Either, Left, Right } from '../data_structures/common';
-import { not, trimStart, trimStartWith } from '../parser/primitive';
+import { Either, Left, Right } from '@ikezedev/ds';
+import { not, trimStart, trimStartWith } from './primitive';
 
 export class PError {
   constructor(public span: Span, public message?: string) {}

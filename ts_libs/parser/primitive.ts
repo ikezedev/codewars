@@ -1,4 +1,4 @@
-import { Either } from '../data_structures/common';
+import { Either } from '@ikezedev/ds';
 import {
   inOrder,
   oneOf,
@@ -99,7 +99,7 @@ export const trimStart = <T>(p: AllParser<T>) =>
   inOrder(os, p).map((r) => r.second);
 
 export const trimStartWith = <T>(p: AllParser<T>, more: AllParser<unknown>) =>
-  inOrder(zeroOrMore(oneOf(more, os)), p).map((r) => r.second);
+  inOrder(zeroOrMore(oneOf(more, ws)), p).map((r) => r.second);
 
 export function letter() {
   return regex(/[a-zA-Z]/);

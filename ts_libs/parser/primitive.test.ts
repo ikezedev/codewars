@@ -5,7 +5,6 @@ import {
   eatWs,
   letter,
   any,
-  int,
   trimStartWith,
 } from './primitive';
 import { Source } from './mod';
@@ -86,7 +85,7 @@ test('trimStartWith', () => {
   const parser = trimStartWith(number, letter);
 
   for (const input of inputs) {
-    const { value, span } = parser.parse(Source.fromString(input));
-    console.log({ value, span });
+    const { value } = parser.parse(Source.fromString(input));
+    expect(value.unwrapLeft()).toBe(123);
   }
 });

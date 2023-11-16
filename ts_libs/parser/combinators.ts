@@ -1,12 +1,5 @@
-import {
-  Either,
-  Left,
-  None,
-  Option,
-  Right,
-  Some,
-} from '../data_structures/common';
-import { Pair, Triple } from './helpers';
+import { Either, Left, None, Option, Right, Some } from '@ikezedev/ds';
+import { Pair, Triple } from '@ikezedev/ds';
 import {
   Parser,
   makeParser,

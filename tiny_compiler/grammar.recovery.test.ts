@@ -76,7 +76,7 @@ test('functions', () => {
     let var = a + b;
     return add(var * 3, 4); // line comment
   `;
-  const { context, value, span } = oneOrMore(fnRec()).parse(
+  const { context, value, span } = oneOrMore(fnRec).parse(
     Source.fromString(input)
   );
 
@@ -112,6 +112,7 @@ test('big', () => {
   fn compute x y z => ( 2 * 3 * x + 5 * y - 3 * z ) / (1 + 3 + 2 * 2);
   // and happens now 1
   
+  // and happens now 2
   /// Test function
   /// Takes a and b
   /// Returns 15 + 4
@@ -129,14 +130,55 @@ test('big', () => {
   }
   
   fn test a b => {
+    // comment inside function body
       let var = 2 + 3
       add(var * 3, 4)
   }`;
 
   const { context, value, span } = tinyGrammar.parse(Source.fromString(input));
 
-  for (const e of value.unwrapLeft()) {
-    console.debug(e);
+  // console.log(fn.documentation);
+  for (const entry of value.unwrapLeft()) {
+    console.log(entry);
   }
   console.debug(context.getErrors());
 });
+
+test('doc comments ultimate', () => {
+  const input = ` 
+  // and happens now 2
+  /// Test function
+  /// Takes a and b
+  /// Returns 15 + 4
+  /// \`\`\`
+  /// let test = mult(2, 1);
+  /// assert_eq(test, 2);
+  /// \`\`\`
+  /// \`\`\`
+  /// fn test a b => {
+  ///    let var = 2 + 3
+  ///    add(var * 3, 4)
+  /// }
+  /// \`\`\`
+  /// \`\`\`ty
+  /// let test = sub(2, 1); // simple comment
+  /// assert_eq(test, 1);
+  /// \`\`\`
+  pub fn test a b => {
+      let var = a + b;
+      return add(var * 3, 4); // line comment
+  }
+  `;
+
+  const { context, value } = tinyGrammar.parse(Source.fromString(input));
+
+  console.debug(context.getErrors());
+
+  const fn = value.unwrapLeft()[0] as FnRec;
+  // console.log(fn.documentation);
+  for (const comment of fn.documentation.unwrap().comments) {
+    console.log(comment);
+  }
+});
+
+// todo: make doc comments group text comments

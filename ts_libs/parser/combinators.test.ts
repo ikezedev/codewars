@@ -13,7 +13,7 @@ import {
   takeUntil,
   zeroOrMore,
 } from './combinators';
-import { Some } from '../data_structures/common';
+import { Some } from '@ikezedev/ds';
 
 function assertEquals<T>(a: T, b: T) {
   return expect(a).toEqual(b);

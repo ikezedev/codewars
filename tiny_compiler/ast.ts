@@ -1,5 +1,5 @@
 import { Span } from '@ikezedev/parser';
-import { None, Option } from '@ikezedev/parser';
+import { None, Option } from '@ikezedev/ds';
 
 export abstract class Expr {
   abstract evaluate(): unknown;
