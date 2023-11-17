@@ -11,5 +11,11 @@
     "types": ["node"],
     "composite": true
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    { "path": "./ts_libs/parser" },
+    { "path": "./ts_libs/data_structures" },
+    { "path": "./tiny_compiler" },
+    { "path": "./tiny" }
+  ]
 }

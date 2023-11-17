@@ -4,9 +4,8 @@
   "workspaces": [
     "ts_libs/parser",
     "ts_libs/data_structures",
-    "tiny/server",
     "tiny_compiler",
-    "tiny/client"
+    "tiny"
   ],
   "private": true,
   "version": "0.0.1",
@@ -18,6 +17,7 @@
     "vitest": "^0.34.6"
   },
   "scripts": {
-    "build": "npm run -w ts_libs build && npm run -w tiny_compiler build"
+    "build": "tsc -b",
+    "watch": "tsc -b -w"
   }
 }

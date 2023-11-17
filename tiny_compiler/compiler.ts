@@ -1,4 +1,5 @@
-import { Option, ParsingContext, Source, Span } from '@ikezedev/parser';
+import { ParsingContext, Source, Span } from '@ikezedev/parser';
+import { Option } from '@ikezedev/ds';
 import { FnExpr, Statement } from './ast';
 import { tinyGrammar } from './grammar';
 export { tinyGrammar } from './grammar';

@@ -7,7 +7,8 @@
   "author": "Ikechukwu Eze",
   "license": "MIT",
   "dependencies": {
-    "@ikezedev/parser": "^0.0.1"
+    "@ikezedev/parser": "^0.0.1",
+    "@ikezedev/ds": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "20.9.0",

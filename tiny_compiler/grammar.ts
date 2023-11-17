@@ -21,12 +21,10 @@ import {
   takeUntil,
 } from '@ikezedev/parser';
 import {
-  Assignment,
   Divide,
   CodeInDocComment,
   Expr,
   ExprStatement,
-  Fn,
   FnCall,
   Id,
   Minus,
