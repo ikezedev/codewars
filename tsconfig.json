@@ -6,16 +6,26 @@
     "moduleResolution": "Node",
     "sourceMap": true,
     "strict": true,
-    "outDir": "dist",
-    "rootDir": "./",
-    "types": ["node"],
-    "composite": true
+    "types": ["node", "vitest/globals"],
+    "composite": true,
+    "skipLibCheck": true
   },
-  "exclude": ["node_modules"],
+  "exclude": [
+    "node_modules",
+    "tiny_three_pass_compiler",
+    "recoverable_parser",
+    "interpreter",
+    "evaluate_math_expr",
+    "become_immortal",
+    "functional_sql",
+    "dist",
+    "out",
+    "vitest.config.ts",
+    "vitest.workspace.ts"
+  ],
   "references": [
     { "path": "./ts_libs/parser" },
     { "path": "./ts_libs/data_structures" },
-    { "path": "./tiny_compiler" },
-    { "path": "./tiny" }
+    { "path": "./tiny_compiler" }
   ]
 }

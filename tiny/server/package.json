@@ -8,9 +8,13 @@
     "node": "*"
   },
   "dependencies": {
-    "@tiny/compiler": "^0.0.1",
+    "@tiny/compiler": "workspace:*",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "20.9.0",
+    "vitest": "^0.34.6"
   },
   "scripts": {
     "build": "tsc -b"

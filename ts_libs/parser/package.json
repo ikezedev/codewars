@@ -2,12 +2,13 @@
   "name": "@ikezedev/parser",
   "description": "Parser combinator library",
   "version": "0.0.1",
+  "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Ikechukwu Eze",
   "license": "MIT",
   "dependencies": {
-    "@ikezedev/ds": "0.0.1"
+    "@ikezedev/ds": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.9.0",
@@ -15,7 +16,6 @@
     "vitest": "^0.34.6"
   },
   "scripts": {
-    "build": "tsc",
-    "preinstall": "tsc"
+    "build": "tsc -b"
   }
 }

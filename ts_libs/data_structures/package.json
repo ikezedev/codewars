@@ -2,6 +2,7 @@
   "name": "@ikezedev/ds",
   "description": "Algebraic data types",
   "version": "0.0.1",
+  "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Ikechukwu Eze",
@@ -11,7 +12,6 @@
     "vitest": "^0.34.6"
   },
   "scripts": {
-    "build": "tsc",
-    "preinstall": "tsc"
+    "build": "tsc -b"
   }
 }

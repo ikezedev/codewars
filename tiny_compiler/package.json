@@ -4,11 +4,12 @@
   "version": "0.0.1",
   "module": "dist/compiler.js",
   "types": "dist/compiler.d.ts",
+  "main": "dist/compiler.js",
   "author": "Ikechukwu Eze",
   "license": "MIT",
   "dependencies": {
-    "@ikezedev/parser": "^0.0.1",
-    "@ikezedev/ds": "^0.0.1"
+    "@ikezedev/parser": "workspace:*",
+    "@ikezedev/ds": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.9.0",
@@ -16,8 +17,7 @@
     "vitest": "^0.34.6"
   },
   "scripts": {
-    "build": "tsc",
-    "test": "vitest",
-    "preinstall": "tsc"
+    "build": "tsc -b",
+    "test": "vitest"
   }
 }

@@ -2,10 +2,8 @@
   "name": "codewars-workspace",
   "description": "My codewars workspace",
   "workspaces": [
-    "ts_libs/parser",
-    "ts_libs/data_structures",
-    "tiny_compiler",
-    "tiny"
+    "ts_libs/*",
+    "tiny_compiler"
   ],
   "private": true,
   "version": "0.0.1",
