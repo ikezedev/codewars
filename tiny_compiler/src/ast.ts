@@ -378,7 +378,7 @@ export class DocComment extends Comment implements IDocComment {
     super(span);
   }
   getMarkdown(src: string): string {
-    return this.comments.map((c) => c.getMarkdown(src)).join('\n ');
+    return this.comments.map((c) => c.getMarkdown(src)).join('\n');
   }
 }
 
@@ -400,11 +400,7 @@ export class CodeInDocComment extends Comment implements IDocComment {
     super(span);
   }
   getMarkdown(src: string): string {
-    return `
-    \`\`\`${this.lang.map((l) => l.name).unwrapOrDefault('')}
-      ${this.statements.map((s) => s.span.extractSrc(src)).join('\n')}
-    \`\`\`
-    `;
+    return this.span.extractSrc(src).replaceAll(/\/\/\/\s/g, '');
   }
 }
 

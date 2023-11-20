@@ -12,9 +12,10 @@ import {
   InitializeResult,
 } from 'vscode-languageserver/node';
 
-import { TinyDocument } from './TinyDocument';
+import { None } from '@ikezedev/ds';
+import { Fn, visitAst } from '@tiny/compiler';
 
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { TinyDocument } from './TinyDocument';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -207,6 +208,46 @@ connection.onCompletion(
 );
 
 connection.onHover((params, token) => {
+  const tiny = parsedDocuments.get(params.textDocument.uri);
+  if (!tiny) return;
+  const { position } = params;
+  connection.console.info(
+    'Hovering over ' + position.character + 'x' + position.line
+  );
+  // do for just functions now
+  const fns: Fn[] = [];
+  if (tiny) {
+    visitAst(tiny.tinyDoc.ast, {
+      Fn: (fn) => {
+        fns.push(fn);
+        return None;
+      },
+    });
+  }
+  const pos = tiny.offsetAt(position);
+  connection.console.info(`Position is ${pos}`);
+
+  const targetFn = fns.find(({ name }) => {
+    return name
+      .map(({ span, name }) => {
+        connection.console.info(
+          `function ${name} at ${span.start} to ${span.end}`
+        );
+        return span.start <= pos && span.end >= pos;
+      })
+      .unwrapOrDefault(false);
+  });
+
+  if (targetFn && targetFn.documentation.isSome() && tiny) {
+    connection.console.info('Hovering over fn' + targetFn.name.unwrap().name);
+    const markdDown = targetFn.documentation
+      .unwrap()
+      .getMarkdown(tiny.getText());
+    connection.console.info(markdDown);
+    return {
+      contents: targetFn.documentation.unwrap().getMarkdown(tiny.getText()),
+    };
+  }
   return null;
 });
 

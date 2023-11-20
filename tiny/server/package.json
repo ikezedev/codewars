@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@tiny/compiler": "workspace:*",
+    "@ikezedev/ds": "workspace:*",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11"
   },

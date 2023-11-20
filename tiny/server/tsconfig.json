@@ -18,6 +18,7 @@
   "references": [
     {
       "path": "../../tiny_compiler"
-    }
+    },
+    { "path": "../../ts_libs/data_structures" }
   ]
 }

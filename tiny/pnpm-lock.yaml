@@ -73,6 +73,9 @@ importers:
 
   server:
     dependencies:
+      '@ikezedev/ds':
+        specifier: workspace:*
+        version: link:../../ts_libs/data_structures
       '@tiny/compiler':
         specifier: workspace:*
         version: link:../../tiny_compiler

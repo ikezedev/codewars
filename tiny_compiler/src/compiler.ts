@@ -2,7 +2,7 @@ import { ParsingContext, Source, Span } from '@ikezedev/parser';
 import { Fn, Id, TinyAst, UseStatement } from './ast';
 import { tinyGrammar } from './grammar';
 export { tinyGrammar } from './grammar';
-export { visitAst } from './ast';
+export * from './ast';
 export class TinyDocument {
   public ast: TinyAst;
   public ctx: ParsingContext;
