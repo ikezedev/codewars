@@ -31,16 +31,15 @@ import {
   Mult,
   NumberExpr,
   Plus,
-  Return,
   Statement,
   UseStatement,
   TextInDocComment,
   InlineComment,
   DocComment,
-  RecAssignment,
+  Assignment,
   Keyword,
-  ReturnRec,
-  FnRec,
+  Return,
+  Fn,
 } from './ast';
 import { Parser } from '@ikezedev/parser';
 import { Option, Some } from '@ikezedev/ds';
@@ -102,7 +101,7 @@ export function assignRec() {
           },
         },
         span
-      ) => new RecAssignment(key, id.ok(), expr.ok(), span)
+      ) => new Assignment(key, id.ok(), expr.ok(), span)
     );
 }
 
@@ -117,7 +116,7 @@ export function retRec() {
     .discardOpt(lit`;`)
     .map(
       ({ first: { first: key }, second }, span) =>
-        new ReturnRec(key, second.ok(), span)
+        new Return(key, second.ok(), span)
     )
     .trimStart();
 }
@@ -138,7 +137,7 @@ function functionBodyInDocComments() {
   );
 }
 
-export function fnRecBase(isDoc = false): Parser<FnRec> {
+export function fnRecBase(isDoc = false): Parser<Fn> {
   return opt(docComment())
     .and(
       inOrder(
@@ -188,7 +187,7 @@ export function fnRecBase(isDoc = false): Parser<FnRec> {
         },
         sp
       ) =>
-        new FnRec(
+        new Fn(
           name.ok(),
           args,
           statements.unwrapOrDefault([]),

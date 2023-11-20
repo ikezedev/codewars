@@ -42,6 +42,7 @@ export class Id extends Expr {
   evaluate() {}
 }
 
+// Todo: rename to Params
 export class Arg extends Id {
   constructor(public name: string, public pos: number, public span: Span) {
     super(name, span);
@@ -273,21 +274,6 @@ function isArgOrId(expr: Expr): expr is Id | Arg | NumberExpr {
   );
 }
 
-export class FnExpr {
-  constructor(public args: Arg[], public body: Expr) {}
-
-  idsToArgs() {
-    this.body = this.body.prepare(Arg.makeMap(this.args));
-    return this;
-  }
-
-  toJSON() {
-    return this.body.toJSON();
-  }
-
-  evaluate() {}
-}
-
 export class FnCall extends Expr {
   evaluate(): unknown {
     throw new Error('Method not implemented.');
@@ -315,21 +301,6 @@ export class Statement {
 
 export class Fn extends Statement {
   constructor(
-    public name: Id,
-    public args: Arg[],
-    public body: Statement[],
-    public isPublic: boolean,
-    public span: Span,
-    public documentation: Option<DocComment> = None
-  ) {
-    super(span);
-  }
-
-  evaluate() {}
-}
-
-export class FnRec extends Statement {
-  constructor(
     public name: Option<Id>,
     public args: Arg[],
     public body: Statement[],
@@ -343,24 +314,13 @@ export class FnRec extends Statement {
   evaluate() {}
 }
 
-export class Assignment extends Statement {
-  constructor(
-    public name: Id,
-    public value: Expr,
-    public span: Span,
-    public isGlobal = false
-  ) {
-    super(span);
-  }
-}
-
 export class Keyword extends Id {
   constructor(public name: string, span: Span) {
     super(name, span);
   }
 }
 
-export class RecAssignment extends Statement {
+export class Assignment extends Statement {
   constructor(
     public keyword: Keyword,
     public name: Option<Id>,
@@ -379,12 +339,6 @@ export class ExprStatement extends Statement {
 }
 
 export class Return extends Statement {
-  constructor(public value: Expr, public span: Span) {
-    super(span);
-  }
-}
-
-export class ReturnRec extends Statement {
   constructor(
     public keyword: Keyword,
     public value: Option<Expr>,
@@ -416,12 +370,15 @@ interface IDocComment {
   getMarkdown(src: string): string;
 }
 
-export class DocComment extends Comment {
+export class DocComment extends Comment implements IDocComment {
   constructor(
     public comments: Array<TextInDocComment | CodeInDocComment>,
     public span: Span
   ) {
     super(span);
+  }
+  getMarkdown(src: string): string {
+    return this.comments.map((c) => c.getMarkdown(src)).join('\n ');
   }
 }
 
@@ -449,4 +406,181 @@ export class CodeInDocComment extends Comment implements IDocComment {
     \`\`\`
     `;
   }
+}
+
+export namespace Keywords {
+  export const LET = (span: Span) => new Keyword('let', span);
+  export const FN = (span: Span) => new Keyword('fn', span);
+  export const PUB = (span: Span) => new Keyword('pub', span);
+  export const RETURN = (span: Span) => new Keyword('return', span);
+}
+
+export type Visit = {
+  Id(id: Id): Option<Id>;
+  Arg(arg: Arg): Option<Arg>;
+  NumberExpr(num: NumberExpr): Option<NumberExpr>;
+  Plus(plus: Plus): Option<Plus>;
+  Minus(min: Minus): Option<Minus>;
+  Mult(mul: Mult): Option<Mult>;
+  Divide(div: Divide): Option<Divide>;
+  FnCall(call: FnCall): Option<FnCall>;
+  Fn(fn: Fn): Option<Fn>;
+  Expr(expr: Expr): Option<Expr>;
+  Statement(stat: Statement): Option<Statement>;
+  Keyword(key: Keyword): Option<Keyword>;
+  Assignment(ass: Assignment): Option<Assignment>;
+  ExprStatement(expr: ExprStatement): Option<ExprStatement>;
+  Return(ret: Return): Option<Return>;
+  UseStatement(use: UseStatement): Option<UseStatement>;
+  InlineComment(comment: InlineComment): Option<InlineComment>;
+  DocComment(comment: DocComment): Option<DocComment>;
+  TextInDocComment(comment: TextInDocComment): Option<TextInDocComment>;
+  CodeInDocComment(comment: CodeInDocComment): Option<CodeInDocComment>;
+};
+
+type Visitors = { [Key in keyof Visit]?: Visit[Key] };
+
+function visitId(v: Visitors, id: Id) {
+  v.Id?.(id);
+}
+
+function visitArg(v: Visitors, arg: Arg) {
+  v.Arg?.(arg);
+}
+
+function visitNumberExpr(v: Visitors, num: NumberExpr) {
+  v.NumberExpr?.(num);
+}
+
+function visitExpr(v: Visitors, expr: Expr) {
+  v.Expr?.(expr);
+  if (expr instanceof Id) {
+    visitId(v, expr);
+  }
+  if (expr instanceof NumberExpr) {
+    visitNumberExpr(v, expr);
+  }
+  if (expr instanceof NumberExpr) {
+    visitNumberExpr(v, expr);
+  }
+  if (expr instanceof Plus) {
+    visitPlus(v, expr);
+  }
+  if (expr instanceof Minus) {
+    visitMinus(v, expr);
+  }
+  if (expr instanceof Divide) {
+    visitDivide(v, expr);
+  }
+  if (expr instanceof Mult) {
+    visitMult(v, expr);
+  }
+  if (expr instanceof FnCall) {
+    visitFnCall(v, expr);
+  }
+}
+function visitPlus(v: Visitors, plus: Plus) {
+  v.Plus?.(plus);
+  v.Expr?.(plus.left);
+  v.Expr?.(plus.right);
+}
+function visitMinus(v: Visitors, minus: Minus) {
+  v.Minus?.(minus);
+  v.Expr?.(minus.left);
+  v.Expr?.(minus.right);
+}
+function visitDivide(v: Visitors, divide: Divide) {
+  v.Divide?.(divide);
+  v.Expr?.(divide.left);
+  v.Expr?.(divide.right);
+}
+function visitMult(v: Visitors, mult: Mult) {
+  v.Mult?.(mult);
+  v.Expr?.(mult.left);
+  v.Expr?.(mult.right);
+}
+
+function visitFnCall(v: Visitors, fnCall: FnCall) {
+  v.FnCall?.(fnCall);
+  fnCall.args.forEach((arg) => visitExpr(v, arg));
+}
+
+function visitKeyWord(v: Visitors, key: Keyword) {
+  v.Keyword?.(key);
+}
+
+function visitAssign(v: Visitors, ass: Assignment) {
+  v.Assignment?.(ass);
+  visitKeyWord(v, ass.keyword);
+  if (ass.value.isSome()) {
+    visitExpr(v, ass.value.unwrap());
+  }
+}
+
+function visitExprStatement(v: Visitors, epst: ExprStatement) {
+  v.ExprStatement?.(epst);
+  visitExpr(v, epst.expr);
+}
+function visitReturn(v: Visitors, ret: Return) {
+  v.Return?.(ret);
+  if (ret.value.isSome()) {
+    visitExpr(v, ret.value.unwrap());
+  }
+}
+
+function visitUseStatement(v: Visitors, use: UseStatement) {
+  v.UseStatement?.(use);
+  use.imports.forEach((id) => visitId(v, id));
+}
+
+function visitDocComment(v: Visitors, docComment: DocComment) {
+  v.DocComment?.(docComment);
+  docComment.comments.forEach((com) => {
+    if (com instanceof TextInDocComment) {
+      v.TextInDocComment?.(com);
+    }
+    if (com instanceof CodeInDocComment) {
+      v.CodeInDocComment?.(com);
+    }
+  });
+}
+
+function visitfn(v: Visitors, fn: Fn) {
+  v.Fn?.(fn);
+  fn.args.forEach((id) => visitId(v, id));
+  fn.documentation.map((d) => visitDocComment(v, d));
+  fn.body.forEach((s) => visitStatement(v, s));
+}
+
+//Todo: visit comment
+
+function visitStatement(v: Visitors, st: Statement) {
+  if (st instanceof Fn) {
+    visitfn(v, st);
+  }
+  if (st instanceof Assignment) {
+    visitAssign(v, st);
+  }
+  if (st instanceof ExprStatement) {
+    visitExprStatement(v, st);
+  }
+  if (st instanceof Return) {
+    visitReturn(v, st);
+  }
+  if (st instanceof UseStatement) {
+    visitUseStatement(v, st);
+  }
+}
+
+export class TinyAst {
+  public constructor(
+    public statements: Option<Statement[]>,
+    public span: Span
+  ) {}
+}
+
+export function visitAst(ast: TinyAst, visitors: Visitors) {
+  ast.statements
+    .unwrapOrDefault([])
+    .forEach((st) => visitStatement(visitors, st));
 }

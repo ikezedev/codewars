@@ -1,7 +1,7 @@
 import { assignRec, fnRec, retRec, tinyGrammar } from './grammar';
 import { PError, Source, Span } from '@ikezedev/parser';
 import { oneOrMore } from '@ikezedev/parser';
-import { FnRec } from './ast';
+import { Fn } from './ast';
 
 function assertEquals<T>(a: T, b: T) {
   return expect(a).toEqual(b);
@@ -174,7 +174,7 @@ test('doc comments ultimate', () => {
 
   console.debug(context.getErrors());
 
-  const fn = value.unwrapLeft()[0] as FnRec;
+  const fn = value.unwrapLeft()[0] as Fn;
   // console.log(fn.documentation);
   for (const comment of fn.documentation.unwrap().comments) {
     console.log(comment);

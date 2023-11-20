@@ -52,6 +52,7 @@ connection.onInitialize((params: InitializeParams) => {
       completionProvider: {
         resolveProvider: true,
       },
+      hoverProvider: true,
     },
   };
   if (hasWorkspaceFolderCapability) {
@@ -204,6 +205,10 @@ connection.onCompletion(
     ];
   }
 );
+
+connection.onHover((params, token) => {
+  return null;
+});
 
 // This handler resolves additional information for the item selected in
 // the completion list.

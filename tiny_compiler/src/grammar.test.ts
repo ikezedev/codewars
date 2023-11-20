@@ -14,7 +14,10 @@ import {
   UseStatement,
   TextInDocComment,
   CodeInDocComment,
+  Keyword,
+  Keywords,
 } from './ast';
+import { Some } from '@ikezedev/ds';
 
 function assertEquals<T>(a: T, b: T) {
   return expect(a).toEqual(b);
@@ -51,14 +54,16 @@ describe('grammar test', () => {
       .value.unwrapLeft();
     assertEquals(parsed, [
       new Assignment(
-        new Id('Global', Span.new(9, 15)),
-        new NumberExpr(100, Span.new(18, 21)),
+        Keywords.LET(Span.new(4, 7)),
+        Some(new Id('Global', Span.new(9, 15))),
+        Some(new NumberExpr(100, Span.new(18, 21))),
         Span.new(5, 21),
         true
       ),
       new Assignment(
-        new Id('another', Span.new(31, 38)),
-        new NumberExpr(30, Span.new(41, 43)),
+        Keywords.LET(Span.new(27, 29)),
+        Some(new Id('another', Span.new(31, 38))),
+        Some(new NumberExpr(30, Span.new(41, 43))),
         Span.new(27, 43),
         true
       ),
@@ -70,7 +75,7 @@ describe('grammar test', () => {
     const parsed = tinyGrammar
       .parse(Source.fromString(input))
       .value.unwrapLeft()[0] as Fn;
-    assertEquals(parsed.name, new Id('add', Span.new(3, 6)));
+    assertEquals(parsed.name.unwrap(), new Id('add', Span.new(3, 6)));
     assertEquals(parsed.args, [
       new Arg('first', 0, Span.new(7, 12)),
       new Arg('second', 1, Span.new(13, 19)),
@@ -98,33 +103,39 @@ describe('grammar test', () => {
       .parse(Source.fromString(input))
       .value.unwrapLeft()[0] as Fn;
 
-    assertEquals(parsed.name, new Id('test', Span.new(12, 16)));
+    assertEquals(parsed.name.unwrap(), new Id('test', Span.new(12, 16)));
     assertEquals(parsed.args, [
       new Arg('a', 0, Span.new(17, 18)),
       new Arg('b', 1, Span.new(19, 20)),
     ]);
     assertEquals(parsed.body, [
       new Assignment(
-        new Id('var', Span.new(36, 39)),
-        new Plus(
-          new NumberExpr(2, Span.new(42, 43)),
-          new NumberExpr(3, Span.new(46, 47)),
-          Span.new(42, 47)
+        Keywords.LET(Span.new(31, 34)),
+        Some(new Id('var', Span.new(36, 39))),
+        Some(
+          new Plus(
+            new NumberExpr(2, Span.new(42, 43)),
+            new NumberExpr(3, Span.new(46, 47)),
+            Span.new(42, 47)
+          )
         ),
         Span.new(32, 47)
       ),
       new Return(
-        new FnCall(
-          new Id('add', Span.new(62, 65)),
-          [
-            new Mult(
-              new Id('var', Span.new(66, 69)),
-              new NumberExpr(3, Span.new(72, 73)),
-              Span.new(66, 73)
-            ),
-            new NumberExpr(4, Span.new(75, 76)),
-          ],
-          Span.new(62, 77)
+        Keywords.FN(Span.new(58, 60)),
+        Some(
+          new FnCall(
+            new Id('add', Span.new(62, 65)),
+            [
+              new Mult(
+                new Id('var', Span.new(66, 69)),
+                new NumberExpr(3, Span.new(72, 73)),
+                Span.new(66, 73)
+              ),
+              new NumberExpr(4, Span.new(75, 76)),
+            ],
+            Span.new(62, 77)
+          )
         ),
         Span.new(55, 78)
       ),
@@ -141,33 +152,39 @@ describe('grammar test', () => {
     const parsed = tinyGrammar
       .parse(Source.fromString(input))
       .value.unwrapLeft()[0] as Fn;
-    assertEquals(parsed.name, new Id('test', Span.new(12, 16)));
+    assertEquals(parsed.name.unwrap(), new Id('test', Span.new(12, 16)));
     assertEquals(parsed.args, [
       new Arg('a', 0, Span.new(17, 18)),
       new Arg('b', 1, Span.new(19, 20)),
     ]);
     assertEquals(parsed.body, [
       new Assignment(
-        new Id('var', Span.new(36, 39)),
-        new Plus(
-          new NumberExpr(2, Span.new(42, 43)),
-          new NumberExpr(3, Span.new(46, 47)),
-          Span.new(42, 47)
+        Keywords.LET(Span.new(31, 34)),
+        Some(new Id('var', Span.new(36, 39))),
+        Some(
+          new Plus(
+            new NumberExpr(2, Span.new(42, 43)),
+            new NumberExpr(3, Span.new(46, 47)),
+            Span.new(42, 47)
+          )
         ),
         Span.new(32, 47)
       ),
       new Return(
-        new FnCall(
-          new Id('add', Span.new(61, 64)),
-          [
-            new Mult(
-              new Id('var', Span.new(65, 68)),
-              new NumberExpr(3, Span.new(71, 72)),
-              Span.new(65, 72)
-            ),
-            new NumberExpr(4, Span.new(74, 75)),
-          ],
-          Span.new(61, 76)
+        Keywords.FN(Span.new(57, 59)),
+        Some(
+          new FnCall(
+            new Id('add', Span.new(61, 64)),
+            [
+              new Mult(
+                new Id('var', Span.new(65, 68)),
+                new NumberExpr(3, Span.new(71, 72)),
+                Span.new(65, 72)
+              ),
+              new NumberExpr(4, Span.new(74, 75)),
+            ],
+            Span.new(61, 76)
+          )
         ),
         Span.new(54, 76)
       ),
@@ -213,14 +230,17 @@ describe('grammar test', () => {
     assertEquals(
       statements[0],
       new Assignment(
-        new Id('test', new Span(84, 88)),
-        new FnCall(
-          new Id('sub', new Span(91, 94)),
-          [
-            new NumberExpr(2, new Span(95, 96)),
-            new NumberExpr(1, new Span(98, 99)),
-          ],
-          new Span(91, 100)
+        Keywords.LET(Span.new(79, 82)),
+        Some(new Id('test', new Span(84, 88))),
+        Some(
+          new FnCall(
+            new Id('sub', new Span(91, 94)),
+            [
+              new NumberExpr(2, new Span(95, 96)),
+              new NumberExpr(1, new Span(98, 99)),
+            ],
+            new Span(91, 100)
+          )
         ),
         new Span(80, 100),
         true
@@ -260,7 +280,7 @@ describe('grammar test', () => {
 
     const { value, span } = tinyGrammar.parse(Source.fromString(input));
     const fn = value.unwrapLeft()[0] as Fn;
-    assertEquals(fn.name.name, 'test');
+    assertEquals(fn.name.unwrap().name, 'test');
     assertEquals(
       fn.args.map((a) => a.name),
       ['a', 'b']
