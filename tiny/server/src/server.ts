@@ -223,10 +223,11 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
 // documents.listen(connection);
 
 connection.onDidOpenTextDocument(({ textDocument }) => {
-  const { uri, text: content, languageId, version } = textDocument;
+  const { uri } = textDocument;
   connection.console.info('Opened text document: ' + uri);
-  const text = TextDocument.create(uri, languageId, version, content);
-  parsedDocuments.set(uri, new TinyDocument(textDocument, uri));
+  const tinyDoc = new TinyDocument(textDocument, uri);
+  parsedDocuments.set(uri, tinyDoc);
+  validateTextDocument(tinyDoc);
   connection.console.info(`Successfully parsed ${uri}`);
 });
 
