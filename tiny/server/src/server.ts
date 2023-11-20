@@ -1,6 +1,5 @@
 import {
   createConnection,
-  TextDocuments,
   Diagnostic,
   DiagnosticSeverity,
   ProposedFeatures,
@@ -13,7 +12,7 @@ import {
   InitializeResult,
 } from 'vscode-languageserver/node';
 
-import { TinyDocument } from '@tiny/compiler';
+import { TinyDocument } from './TinyDocument';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -22,7 +21,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
-const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+// const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 const parsedDocuments = new Map<string, TinyDocument>();
 
 let hasConfigurationCapability = false;
@@ -105,7 +104,8 @@ connection.onDidChangeConfiguration((change) => {
   }
 
   // Revalidate all open text documents
-  documents.all().forEach(validateTextDocument);
+  // documents.all().forEach(validateTextDocument);
+  // Todo: revalidate all docs
 });
 
 function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
@@ -124,34 +124,50 @@ function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
 }
 
 // Only keep settings for open documents
-documents.onDidClose((e) => {
-  documentSettings.delete(e.document.uri);
-  parsedDocuments.delete(e.document.uri);
+// documents.onDidClose((e) => {
+//   documentSettings.delete(e.document.uri);
+//   parsedDocuments.delete(e.document.uri);
+// });
+
+connection.onDidCloseTextDocument((e) => {
+  parsedDocuments.delete(e.textDocument.uri);
 });
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
-documents.onDidChangeContent((change) => {
-  validateTextDocument(change.document);
+// documents.onDidChangeContent((change) => {
+//   validateTextDocument(change.document);
+// });
+
+connection.onDidChangeTextDocument((change) => {
+  if (parsedDocuments.get(change.textDocument.uri)) {
+    const doc = parsedDocuments.get(change.textDocument.uri)!;
+    for (const delta of change.contentChanges) {
+      doc.applyEdit(change.textDocument.version, delta);
+    }
+    doc.sync();
+    validateTextDocument(doc);
+  }
 });
 
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
+async function validateTextDocument(textDocument: TinyDocument): Promise<void> {
+  connection.console.info('Validating tiny document ' + textDocument.uri);
   if (!parsedDocuments.get(textDocument.uri)) {
-    parsedDocuments.set(textDocument.uri, textToTiny(textDocument));
+    parsedDocuments.set(textDocument.uri, textDocument);
   }
   const tiny = parsedDocuments.get(textDocument.uri)!;
   const diagnostics: Diagnostic[] = [];
-  for (const entry of tiny.ctx.getErrors()) {
-    const [start, end] = tiny.getPosition(entry.span);
+  for (const entry of tiny.tinyDoc.ctx.getErrors()) {
     const diagnostic: Diagnostic = {
-      severity: DiagnosticSeverity.Warning,
+      severity: DiagnosticSeverity.Error,
       range: {
-        start,
-        end,
+        start: tiny.positionAt(entry.span.start),
+        end: tiny.positionAt(entry.span.end),
       },
       message: entry.message ?? '',
       source: 'tiny lsp',
     };
+    connection.console.log(entry.message ?? 'Empty diagnostic');
     diagnostics.push(diagnostic);
   }
 
@@ -168,15 +184,9 @@ connection.onDidChangeWatchedFiles((_change) => {
 connection.onCompletion(
   (textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
     const text = textDocumentPosition.textDocument;
-    if (!parsedDocuments.get(text.uri)) {
-      const doc = documents.get(text.uri);
-      if (doc) {
-        parsedDocuments.set(text.uri, textToTiny(doc));
-      }
-    }
+    if (!parsedDocuments.get(text.uri)) return [];
 
     const current = parsedDocuments.get(text.uri);
-    if (!current) return [];
     // The pass parameter contains the position of the text document in
     // which code complete got requested. For the example we ignore this
     // info and always provide the same completion items.
@@ -210,11 +220,15 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
-documents.listen(connection);
+// documents.listen(connection);
+
+connection.onDidOpenTextDocument(({ textDocument }) => {
+  const { uri, text: content, languageId, version } = textDocument;
+  connection.console.info('Opened text document: ' + uri);
+  const text = TextDocument.create(uri, languageId, version, content);
+  parsedDocuments.set(uri, new TinyDocument(textDocument, uri));
+  connection.console.info(`Successfully parsed ${uri}`);
+});
 
 // Listen on the connection
 connection.listen();
-
-function textToTiny(text: TextDocument) {
-  return new TinyDocument(text.getText(), text.uri);
-}

@@ -1,0 +1,25 @@
+ pub fn test1 a b => {
+    let var = a + b;
+    return add(var * 3, 4); // line comment
+  }
+  pub fn  => {
+    let var = a + b;
+    return add(var * 3, 4); // line comment
+  }
+
+  pub fn test3 a b   {
+    let var = a + b;
+    return add(var * 3, 4); // line comment
+  }
+  pub fn {
+    let var = a + b;
+    return add(var * 3, 4); // line comment
+  }
+  pub fn test5 a b => {
+  }
+  pub fn test6 a b => {}
+  pub fn test7 a b => 
+  pub fn test1 a b => {
+    let var = a + b;
+    return add(var * 3, 4); // line comment
+  

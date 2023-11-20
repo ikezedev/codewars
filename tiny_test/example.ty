@@ -27,6 +27,7 @@ pub fn test a b => {
     return add(var * 3, 4); // line comment
 }
 
+
 fn test a b => {
     let var = 2 + 3
     add(var * 3, 4)
