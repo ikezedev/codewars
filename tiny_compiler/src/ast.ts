@@ -386,8 +386,8 @@ export class TextInDocComment extends Comment implements IDocComment {
   constructor(public texts: string[], public span: Span) {
     super(span);
   }
-  getMarkdown(): string {
-    return this.texts.join('\n');
+  getMarkdown(src: string): string {
+    return this.span.extractSrc(src).replaceAll(/\/\/\/\s/g, '');
   }
 }
 

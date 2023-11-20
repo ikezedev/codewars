@@ -10,6 +10,7 @@ import {
   TextDocumentPositionParams,
   TextDocumentSyncKind,
   InitializeResult,
+  MarkupKind,
 } from 'vscode-languageserver/node';
 
 import { None } from '@ikezedev/ds';
@@ -211,9 +212,6 @@ connection.onHover((params, token) => {
   const tiny = parsedDocuments.get(params.textDocument.uri);
   if (!tiny) return;
   const { position } = params;
-  connection.console.info(
-    'Hovering over ' + position.character + 'x' + position.line
-  );
   // do for just functions now
   const fns: Fn[] = [];
   if (tiny) {
@@ -225,7 +223,6 @@ connection.onHover((params, token) => {
     });
   }
   const pos = tiny.offsetAt(position);
-  connection.console.info(`Position is ${pos}`);
 
   const targetFn = fns.find(({ name }) => {
     return name
@@ -238,18 +235,28 @@ connection.onHover((params, token) => {
       .unwrapOrDefault(false);
   });
 
-  if (targetFn && targetFn.documentation.isSome() && tiny) {
-    connection.console.info('Hovering over fn' + targetFn.name.unwrap().name);
+  if (targetFn && tiny) {
     const markdDown = targetFn.documentation
-      .unwrap()
-      .getMarkdown(tiny.getText());
-    connection.console.info(markdDown);
+      .map((d) => d.getMarkdown(tiny.getText()))
+      .unwrapOrDefault('');
+    const doc = getFnHoverTitle(targetFn) + '\n___\n' + markdDown;
     return {
-      contents: targetFn.documentation.unwrap().getMarkdown(tiny.getText()),
+      contents: {
+        value: doc,
+        kind: MarkupKind.Markdown,
+      },
     };
   }
   return null;
 });
+
+function getFnHoverTitle(fn: Fn) {
+  return `\`\`\`
+fn ${fn.name.map((n) => n.name).unwrapOrDefault('')} ${fn.args
+    .map((a) => a.name)
+    .join(' ')} => number
+  \`\`\``;
+}
 
 // This handler resolves additional information for the item selected in
 // the completion list.

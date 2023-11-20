@@ -1,4 +1,4 @@
-/// Subtracts second param from first
+/// Subtracts second param from first putting more things here
 /// ```ty
 /// let test = sub(2, 1);
 /// assert_eq(test, 1);
